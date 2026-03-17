@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>แผนที่การจัดเก็บขยะในชุมชน</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap');
+        body { font-family: 'Kanit', sans-serif; }
+        
+        #map { z-index: 10; }
+        .info-panel { transition: transform 0.3s ease-in-out; z-index: 50; }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #059669; }
+
+        .custom-marker {
+            background-color: #10b981; border: 2px solid white; border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; justify-content: center;
+            align-items: center; color: white; font-size: 14px;
+        }
+
+        .leaflet-interactive { cursor: pointer; }
+    </style>
+</head>
+<body class="bg-gray-50 h-screen overflow-hidden flex flex-col md:flex-row relative">
+
+    <!-- Header / Sidebar -->
+    <div class="bg-white shadow-md z-40 w-full md:w-80 lg:w-96 flex flex-col h-auto md:h-screen shrink-0">
+        <div class="p-4 bg-emerald-600 text-white flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-semibold"><i class="fa-solid fa-truck-ramp-box mr-2"></i>การจัดเก็บขยะ</h1>
+                <p class="text-emerald-100 text-sm">แผนที่เส้นทางและตารางเวลาจัดเก็บ</p>
+            </div>
+            <button id="adminToggle" onclick="requestAdminToggle()" class="bg-emerald-700 hover:bg-emerald-800 p-2 rounded-full text-xs transition">
+                <i class="fa-solid fa-user-lock"></i>
+            </button>
+        </div>
+
+        <div class="p-4 border-b">
+            <div class="relative">
+                <input type="text" id="searchInput" placeholder="ค้นหาสถานที่, ชื่อจุดเก็บ..." 
+                    class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50"
+                    onkeyup="handleSearch()">
+                <i class="fa-solid fa-search absolute left-3 top-3 text-gray-400"></i>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-2 hidden md:block" id="locationList">
+            <div class="text-center text-gray-500 py-4"><i class="fa-solid fa-spinner fa-spin mr-2"></i>กำลังโหลดข้อมูล...</div>
+        </div>
+        
+        <!-- แถบสถานะโหมด Admin -->
+        <div id="adminBanner" class="hidden bg-amber-50 border-t border-amber-200 p-3 flex flex-col gap-2">
+            <div class="text-amber-800 text-sm font-medium flex items-center justify-between">
+                <span><i class="fa-solid fa-wrench mr-1"></i> โหมดผู้ดูแล</span>
+                <span id="drawingStatus" class="text-xs bg-amber-200 px-2 py-0.5 rounded-full hidden animate-pulse">กำลังวาดเส้น...</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                <button onclick="setMode('point')" id="btnModePoint" class="py-2 border border-amber-500 bg-amber-500 text-white rounded hover:bg-amber-600 transition">
+                    <i class="fa-solid fa-location-dot"></i> เพิ่มจุด
+                </button>
+                <button onclick="setMode('route')" id="btnModeRoute" class="py-2 border border-blue-500 text-blue-600 rounded hover:bg-blue-50 transition">
+                    <i class="fa-solid fa-route"></i> วาดเส้นทาง
+                </button>
+            </div>
+            <button id="btnFinishRoute" onclick="showRouteForm()" class="hidden py-2 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition text-sm">
+                <i class="fa-solid fa-check"></i> บันทึกเส้นทางนี้
+            </button>
+        </div>
+    </div>
+
+    <!-- แผนที่หลัก -->
+    <div class="flex-1 relative h-full">
+        <div id="map" class="w-full h-full"></div>
+
+        <div id="infoPanel" class="info-panel fixed md:absolute bottom-0 md:bottom-auto md:top-4 md:right-4 w-full md:w-80 bg-white rounded-t-2xl md:rounded-xl shadow-2xl transform translate-y-full md:translate-y-0 md:opacity-0 md:pointer-events-none transition-all duration-300 max-h-[85vh] overflow-y-auto flex flex-col">
+            <!-- ที่จับสำหรับดึงลง (Mobile) -->
+            <div class="w-full flex justify-center pt-3 pb-1 md:hidden" onclick="closePanel()">
+                <div class="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+            </div>
+            
+            <!-- เนื้อหาภายใน -->
+            <div class="p-5 flex-1" id="panelContent"></div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- 1. Password Modal -->
+    <div id="passwordModal" class="fixed inset-0 bg-black/60 hidden z-[100] flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="bg-white p-6 rounded-xl w-80 shadow-2xl transform scale-95 transition-transform">
+            <h3 class="text-lg font-bold mb-2 text-gray-800"><i class="fa-solid fa-lock text-emerald-600 mr-2"></i>ผู้ดูแลระบบ</h3>
+            <p class="text-xs text-gray-500 mb-4">ระบบตรวจสอบรหัสผ่านเชื่อมต่อกับ Google Sheet โดยตรง</p>
+            <input type="password" id="adminPassword" class="w-full border p-2 rounded-lg mb-4 focus:ring-2 focus:ring-emerald-500 outline-none bg-gray-50" placeholder="รหัสผ่าน">
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal('passwordModal')" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200">ยกเลิก</button>
+                <button id="btnLogin" onclick="verifyPassword()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 shadow flex items-center justify-center min-w-[100px] transition">
+                    <i id="btnLoginIcon" class="hidden"></i> <span id="btnLoginText">เข้าสู่ระบบ</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Confirm Delete Modal -->
+    <div id="confirmModal" class="fixed inset-0 bg-black/60 hidden z-[100] flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-xl w-80 shadow-2xl">
+            <h3 class="text-lg font-bold mb-2 text-red-600"><i class="fa-solid fa-triangle-exclamation mr-2"></i>ยืนยันการลบ</h3>
+            <p class="text-sm text-gray-600 mb-6">คุณต้องการลบข้อมูลนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal('confirmModal')" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200">ยกเลิก</button>
+                <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 shadow">ลบข้อมูล</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast แจ้งเตือน -->
+    <div id="toast" class="fixed top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded shadow-lg transform transition-transform duration-300 translate-y-[-150%] z-50 flex items-center gap-2">
+        <span id="toastMsg"></span>
+    </div>
+
+    <script>
+        /** ==========================================
+         * การตั้งค่าระบบ
+         * ========================================== */
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxjKS-K3tYte5tpFPKsgdtLpHbx1jqkvdtRFvYxxjiB57rx8ZsIOCZnPnLixPYJ2oruPg/exec"; 
+
+        // การตั้งค่าเซสชัน
+        const ADMIN_SESSION_KEY = 'garbage_map_admin_session';
+        const SESSION_HOURS = 3; // ระยะเวลาล็อกอิน (ชั่วโมง)
+        let sessionTimeout; // ตัวแปรเก็บ Timer
+
+        // สถานะ
+        let map;
+        let markersGroup;
+        let routesGroup;
+        let locationsData = [];
+        let isAdminMode = false;
+        
+        // ตัวแปรเก็บเลเยอร์บนแผนที่สำหรับระบบ Highlight
+        let layerMap = {}; 
+        let currentHighlightId = null; 
+
+        // สถานะการวาดเส้นทาง
+        let adminAction = 'point'; 
+        let currentTempMarker = null; 
+        let isDrawingRoute = false;
+        let routePoints = [];
+        let tempPolyline = null;
+        let itemToDelete = null;
+        
+        const mockData = [
+            { id: "1", name: "จุดรวมขยะ ซอย 1", lat: 13.7563, lng: 100.5018, schedule: "จันทร์, พุธ, ศุกร์ (08:00)", responsible: "นายสมชาย ใจดี", details: "แยกขยะเปียกและแห้ง" },
+            { id: "2", name: "หน้าสวนสาธารณะชุมชน", lat: 13.7580, lng: 100.5040, schedule: "อังคาร, พฤหัส, เสาร์ (09:00)", responsible: "นายมานะ อดทน", details: "มีถังขยะอันตราย" },
+            { id: "route_1", name: "เส้นทางรถขยะสาย A", lat: "[[13.7550,100.5010],[13.7563,100.5018],[13.7580,100.5040]]", lng: "", schedule: "ทุกวัน (07:00)", responsible: "ทีมงานเทศบาล", details: "รถเก็บขยะคันสีเขียว ทะเบียน 1234" }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();             // 1. เลื่อนการสร้างแผนที่ขึ้นมาเป็นอันดับแรกสุด เพื่อเตรียมตัวแปร Layer ต่างๆ ให้พร้อม
+            checkAdminSession();   // 2. ตรวจสอบสถานะล็อกอิน (ถ้าล็อกอินค้างไว้ ระบบจะสั่งอัปเดต UI และวาดแผนที่ได้โดยไม่ Error)
+            loadData();            // 3. โหลดข้อมูลจากฐานข้อมูล
+        });
+
+        function initMap() {
+            map = L.map('map', {zoomControl: false}).setView([13.6969, 100.5054], 15);
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19
+            }).addTo(map);
+
+            routesGroup = L.featureGroup().addTo(map);
+            markersGroup = L.featureGroup().addTo(map);
+
+            map.on('click', function(e) {
+                if (!isAdminMode) {
+                    closePanel();
+                    return;
+                }
+                if (adminAction === 'point') showPointForm(e.latlng.lat, e.latlng.lng);
+                else if (adminAction === 'route') addRoutePoint(e.latlng);
+            });
+        }
+
+        async function loadData() {
+            renderListUI(null, true); 
+            if (!GAS_URL) {
+                setTimeout(() => {
+                    locationsData = mockData;
+                    renderData();
+                    showToast("กำลังแสดงข้อมูลจำลอง");
+                }, 800);
+                return;
+            }
+
+            try {
+                const response = await fetch(GAS_URL);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    locationsData = result.data;
+                    renderData();
+                } else {
+                    showToast("ข้อผิดพลาด: " + result.message, true);
+                    renderListUI([]);
+                }
+            } catch (error) {
+                showToast("ไม่สามารถเชื่อมต่อฐานข้อมูลได้", true);
+                renderListUI([]);
+            }
+        }
+
+        /** ==========================================
+         * ระบบการ Highlight (แสดงสี/เน้นรายการ)
+         * ========================================== */
+        function createIcon(isHighlight = false) {
+            return L.divIcon({
+                className: 'custom-icon',
+                html: `<div class="custom-marker transition-all duration-300 flex items-center justify-center ${
+                    isHighlight ? 'w-10 h-10 !bg-amber-500 !border-[3px] shadow-[0_0_15px_rgba(245,158,11,0.6)] z-50' : 'w-8 h-8'
+                }"><i class="fa-solid fa-trash"></i></div>`,
+                iconSize: isHighlight ? [40, 40] : [32, 32],
+                iconAnchor: isHighlight ? [20, 20] : [16, 16]
+            });
+        }
+
+        function highlightFeature(id) {
+            if (currentHighlightId === id) return;
+
+            // คืนค่าสีเดิม
+            if (currentHighlightId && layerMap[currentHighlightId]) {
+                const prevLayer = layerMap[currentHighlightId];
+                if (currentHighlightId.toString().startsWith('route_')) {
+                    prevLayer.setStyle({ color: '#3b82f6', weight: 5, opacity: 0.8 });
+                } else {
+                    prevLayer.setIcon(createIcon(false));
+                    prevLayer.setZIndexOffset(0);
+                }
+            }
+
+            currentHighlightId = id;
+
+            // ตั้งค่าสีใหม่ (Highlight)
+            if (id && layerMap[id]) {
+                const layer = layerMap[id];
+                if (id.toString().startsWith('route_')) {
+                    layer.setStyle({ color: '#f59e0b', weight: 8, opacity: 1 });
+                    layer.bringToFront();
+                } else {
+                    layer.setIcon(createIcon(true));
+                    layer.setZIndexOffset(1000);
+                }
+            }
+
+            // จัดการ Sidebar List
+            document.querySelectorAll('.list-item').forEach(el => {
+                el.classList.remove('border-amber-400', 'bg-amber-50', 'shadow-md');
+                el.classList.add('border-gray-200', 'bg-white');
+            });
+
+            const activeItem = document.getElementById(`list-item-${id}`);
+            if (activeItem) {
+                activeItem.classList.remove('border-gray-200', 'bg-white');
+                activeItem.classList.add('border-amber-400', 'bg-amber-50', 'shadow-md');
+                activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        /** ==========================================
+         * การแสดงผล (Render)
+         * ========================================== */
+        function renderData(dataToRender = locationsData) {
+            markersGroup.clearLayers();
+            routesGroup.clearLayers();
+            layerMap = {}; 
+            currentHighlightId = null;
+
+            let bounds = L.latLngBounds();
+
+            dataToRender.forEach(loc => {
+                if (loc.id.toString().startsWith('route_')) {
+                    try {
+                        let coordsStr = (loc.lat && loc.lat.toString().startsWith('[')) ? loc.lat : loc.details;
+                        const coords = JSON.parse(coordsStr);
+                        if (Array.isArray(coords) && coords.length > 0) {
+                            
+                            // เพิ่ม bubblingMouseEvents: false เพื่อป้องกันการคลิกทะลุไปโดนแผนที่ (ตัวการที่ทำให้หน้าต่างปิด)
+                            const hitArea = L.polyline(coords, { 
+                                color: 'transparent', 
+                                weight: 35, // เพิ่มความหนาของพื้นที่สัมผัสให้แตะง่ายขึ้นบนมือถือ
+                                opacity: 0.01,
+                                bubblingMouseEvents: false 
+                            }).addTo(routesGroup);
+                            
+                            hitArea.on('click', () => {
+                                map.fitBounds(L.polyline(coords).getBounds(), { padding: [30, 30], maxZoom: 17 });
+                                viewDetails(loc.id);
+                            });
+
+                            const polyline = L.polyline(coords, { 
+                                color: '#3b82f6', 
+                                weight: 5, 
+                                opacity: 0.8,
+                                bubblingMouseEvents: false
+                            }).addTo(routesGroup);
+                            
+                            polyline.on('click', () => {
+                                map.fitBounds(polyline.getBounds(), { padding: [30, 30], maxZoom: 17 });
+                                viewDetails(loc.id);
+                            });
+                            
+                            layerMap[loc.id] = polyline;
+                            bounds.extend(polyline.getBounds());
+                        }
+                    } catch(e) {}
+                } else if (loc.lat && loc.lng) {
+                    const marker = L.marker([loc.lat, loc.lng], { icon: createIcon(false) });
+                    marker.on('click', () => {
+                        map.flyTo([loc.lat, loc.lng], 17);
+                        viewDetails(loc.id);
+                    });
+                    
+                    layerMap[loc.id] = marker;
+                    markersGroup.addLayer(marker);
+                    bounds.extend([loc.lat, loc.lng]);
+                }
+            });
+
+            if (bounds.isValid() && !currentTempMarker && !isDrawingRoute) {
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+            renderListUI(dataToRender);
+        }
+
+        function renderListUI(dataToRender = locationsData, isLoading = false) {
+            const list = document.getElementById('locationList');
+            if (isLoading) {
+                list.innerHTML = '<div class="text-center text-gray-500 py-10"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><br>กำลังโหลด...</div>';
+                return;
+            }
+
+            list.innerHTML = '';
+            if (dataToRender.length === 0) {
+                list.innerHTML = '<div class="text-center text-gray-500 py-10">ไม่พบข้อมูล</div>';
+                return;
+            }
+
+            dataToRender.forEach(loc => {
+                const isRoute = loc.id.toString().startsWith('route_');
+                const item = document.createElement('div');
+                item.id = `list-item-${loc.id}`; 
+                item.className = `list-item p-3 mb-2 border rounded-lg cursor-pointer transition hover:shadow-sm border-gray-200 bg-white ${isRoute ? 'hover:border-blue-400' : 'hover:border-emerald-400'}`;
+                
+                item.onclick = () => {
+                    if(!isRoute && loc.lat) map.flyTo([loc.lat, loc.lng], 17);
+                    else if(isRoute && layerMap[loc.id]) map.fitBounds(layerMap[loc.id].getBounds());
+                    viewDetails(loc.id);
+                };
+                
+                const icon = isRoute ? '<i class="fa-solid fa-route text-blue-500 mr-1"></i>' : '';
+                item.innerHTML = `
+                    <div class="font-medium text-gray-800">${icon} ${loc.name}</div>
+                    <div class="text-xs text-gray-500 mt-1"><i class="fa-regular fa-clock mr-1"></i> ${loc.schedule}</div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        /** ==========================================
+         * การจัดการ Panel และ Details
+         * ========================================== */
+        function viewDetails(id) {
+            const loc = locationsData.find(l => l.id == id);
+            if (!loc) return;
+            const isRoute = loc.id.toString().startsWith('route_');
+
+            highlightFeature(id);
+
+            // โครงสร้างส่วน Header ที่ป้องกันการซ้อนทับของปุ่มอย่างสมบูรณ์
+            let html = `
+                <div class="flex justify-between items-start mb-4 border-b pb-3 border-gray-100">
+                    <h2 class="text-lg font-bold text-gray-800 flex items-start flex-1 pr-2 leading-tight">
+                        ${isRoute ? '<i class="fa-solid fa-route text-amber-500 mr-2 mt-1"></i>' : ''}
+                        ${loc.name}
+                    </h2>
+                    
+                    <div class="flex gap-1.5 shrink-0 items-center">
+                        ${isAdminMode ? `
+                            <button onclick="editLocation('${loc.id}')" class="text-amber-600 bg-amber-50 hover:bg-amber-100 w-8 h-8 rounded-lg border border-amber-200 transition shadow-sm flex justify-center items-center" title="แก้ไขข้อมูล">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="promptDelete('${loc.id}')" class="text-red-600 bg-red-50 hover:bg-red-100 w-8 h-8 rounded-lg border border-red-200 transition shadow-sm flex justify-center items-center" title="ลบข้อมูล">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        ` : ''}
+                        <button onclick="closePanel()" class="text-gray-500 bg-gray-100 hover:bg-gray-200 w-8 h-8 rounded-full transition shadow-sm flex justify-center items-center ml-1" title="ปิด">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="space-y-3 text-sm text-gray-600">
+                    <div class="flex items-start">
+                        <div class="w-8 text-emerald-600 shrink-0 pt-0.5"><i class="fa-solid fa-calendar-days text-lg"></i></div>
+                        <div>
+                            <span class="block text-xs text-gray-400">วันเวลาจัดเก็บ</span>
+                            <span class="font-medium text-gray-800">${loc.schedule || '-'}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="w-8 text-emerald-600 shrink-0 pt-0.5"><i class="fa-solid fa-user-tie text-lg"></i></div>
+                        <div>
+                            <span class="block text-xs text-gray-400">ผู้รับผิดชอบ</span>
+                            <span class="font-medium text-gray-800">${loc.responsible || '-'}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start">
+                        <div class="w-8 text-emerald-600 shrink-0 pt-0.5"><i class="fa-solid fa-circle-info text-lg"></i></div>
+                        <div>
+                            <span class="block text-xs text-gray-400">รายละเอียดเพิ่มเติม</span>
+                            <span class="text-gray-800 whitespace-pre-line">${(loc.details && loc.details.toString().startsWith('[')) ? '-' : (loc.details || '-')}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                ${!isRoute ? `
+                <div class="mt-6">
+                    <button onclick="window.open('https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lng}')" class="w-full bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 py-2 rounded-lg font-medium transition flex justify-center items-center">
+                        <i class="fa-solid fa-location-arrow mr-2"></i> นำทางไปที่นี่
+                    </button>
+                </div>` : ''}
+            `;
+            
+            document.getElementById('panelContent').innerHTML = html;
+            openPanel();
+        }
+
+        function closePanel() {
+            const panel = document.getElementById('infoPanel');
+            panel.classList.add('translate-y-full', 'md:opacity-0', 'md:pointer-events-none');
+            panel.classList.remove('md:opacity-100', 'md:pointer-events-auto');
+            
+            // ลบ Highlight ออกเมื่อปิดหน้าต่างรายละเอียด
+            if (currentHighlightId) {
+                const idToReset = currentHighlightId;
+                currentHighlightId = null; 
+                
+                if (layerMap[idToReset]) {
+                    if (idToReset.toString().startsWith('route_')) {
+                        layerMap[idToReset].setStyle({ color: '#3b82f6', weight: 5, opacity: 0.8 });
+                    } else {
+                        layerMap[idToReset].setIcon(createIcon(false));
+                        layerMap[idToReset].setZIndexOffset(0);
+                    }
+                }
+                document.querySelectorAll('.list-item').forEach(el => {
+                    el.classList.remove('border-amber-400', 'bg-amber-50', 'shadow-md');
+                    el.classList.add('border-gray-200', 'bg-white');
+                });
+            }
+
+            if (currentTempMarker && adminAction === 'point') {
+                map.removeLayer(currentTempMarker);
+                currentTempMarker = null;
+            }
+        }
+
+        function openPanel() {
+            const panel = document.getElementById('infoPanel');
+            panel.classList.remove('translate-y-full', 'md:opacity-0', 'md:pointer-events-none');
+            panel.classList.add('md:opacity-100', 'md:pointer-events-auto');
+        }
+
+        /** ==========================================
+         * ระบบความปลอดภัย (รหัสผ่าน & Session 3 ชั่วโมง)
+         * ========================================== */
+        function checkAdminSession() {
+            const expireStr = localStorage.getItem(ADMIN_SESSION_KEY);
+            if (expireStr) {
+                const expireTime = parseInt(expireStr, 10);
+                const currentTime = Date.now();
+                
+                if (currentTime < expireTime) {
+                    // ถ้ายัวไม่หมดเวลา ให้เซ็ตเป็น Admin และตั้งเวลาเตะออก
+                    isAdminMode = true;
+                    const timeLeft = expireTime - currentTime;
+                    startSessionTimer(timeLeft);
+                    updateAdminUI(); // เพิ่มบรรทัดนี้เพื่อสั่งให้ UI อัปเดตแสดงเมนูแอดมินทันทีเมื่อรีเฟรชหน้า
+                } else {
+                    // ถ้าหมดเวลาแล้ว ให้ล้างค่าทิ้ง
+                    localStorage.removeItem(ADMIN_SESSION_KEY);
+                    isAdminMode = false;
+                }
+            }
+        }
+
+        function startSessionTimer(milliseconds) {
+            clearTimeout(sessionTimeout);
+            sessionTimeout = setTimeout(() => {
+                if (isAdminMode) {
+                    isAdminMode = false;
+                    localStorage.removeItem(ADMIN_SESSION_KEY);
+                    updateAdminUI();
+                    showToast("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่", true);
+                }
+            }, milliseconds);
+        }
+
+        function requestAdminToggle() {
+            if (isAdminMode) {
+                isAdminMode = false;
+                localStorage.removeItem(ADMIN_SESSION_KEY); // ล้างค่าเมื่อกดออกจากระบบ
+                clearTimeout(sessionTimeout);
+                updateAdminUI();
+                showToast("ออกจากระบบผู้ดูแล");
+            } else {
+                document.getElementById('adminPassword').value = '';
+                document.getElementById('passwordModal').classList.remove('hidden');
+                setTimeout(() => document.getElementById('adminPassword').focus(), 100);
+            }
+        }
+
+        async function verifyPassword() {
+            const pwdInput = document.getElementById('adminPassword');
+            const pwd = pwdInput.value;
+            const btn = document.getElementById('btnLogin');
+            const btnText = document.getElementById('btnLoginText');
+            const btnIcon = document.getElementById('btnLoginIcon');
+            
+            if (!pwd) return showToast("กรุณาใส่รหัสผ่าน", true);
+
+            if (!GAS_URL) {
+                if (pwd === "1234") { 
+                    loginSuccess();
+                    showToast("เข้าสู่โหมดผู้ดูแลระบบ (ข้อมูลจำลอง)");
+                } else {
+                    showToast("รหัสผ่านไม่ถูกต้อง!", true);
+                }
+                return;
+            }
+
+            btn.disabled = true;
+            btnText.innerText = "กำลังตรวจสอบ...";
+            btnIcon.className = "fa-solid fa-spinner fa-spin mr-2 block";
+
+            try {
+                const response = await fetch(`${GAS_URL}?action=verify&password=${encodeURIComponent(pwd)}`);
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    loginSuccess();
+                    showToast("เข้าสู่โหมดผู้ดูแลระบบสำเร็จ");
+                } else {
+                    showToast(result.message || "รหัสผ่านไม่ถูกต้อง!", true);
+                    pwdInput.value = '';
+                    pwdInput.focus();
+                }
+            } catch (error) {
+                showToast("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้", true);
+            } finally {
+                btn.disabled = false;
+                btnText.innerText = "เข้าสู่ระบบ";
+                btnIcon.className = "hidden";
+            }
+        }
+
+        function loginSuccess() {
+            isAdminMode = true;
+            
+            // ตั้งค่าหมดอายุในอีก 3 ชั่วโมง (แปลงเป็นมิลลิวินาที)
+            const durationMs = SESSION_HOURS * 60 * 60 * 1000;
+            const expireTime = Date.now() + durationMs;
+            localStorage.setItem(ADMIN_SESSION_KEY, expireTime.toString());
+            
+            // เริ่มจับเวลา
+            startSessionTimer(durationMs);
+            
+            closeModal('passwordModal');
+            updateAdminUI();
+        }
+
+        function updateAdminUI() {
+            const btn = document.getElementById('adminToggle');
+            const banner = document.getElementById('adminBanner');
+            if (isAdminMode) {
+                btn.classList.replace('bg-emerald-700', 'bg-amber-500');
+                btn.classList.replace('hover:bg-emerald-800', 'hover:bg-amber-600');
+                banner.classList.remove('hidden');
+                setMode('point');
+            } else {
+                btn.classList.replace('bg-amber-500', 'bg-emerald-700');
+                btn.classList.replace('hover:bg-amber-600', 'hover:bg-emerald-800');
+                banner.classList.add('hidden');
+                if (currentTempMarker) map.removeLayer(currentTempMarker);
+                if (tempPolyline) map.removeLayer(tempPolyline);
+                currentTempMarker = null;
+            }
+            closePanel();
+            renderData();
+        }
+
+        function setMode(mode) {
+            adminAction = mode;
+            const btnPoint = document.getElementById('btnModePoint');
+            const btnRoute = document.getElementById('btnModeRoute');
+            const status = document.getElementById('drawingStatus');
+            const btnFinish = document.getElementById('btnFinishRoute');
+
+            if (mode === 'point') {
+                btnPoint.className = "py-2 border border-amber-500 bg-amber-500 text-white rounded hover:bg-amber-600 transition shadow-inner";
+                btnRoute.className = "py-2 border border-blue-500 text-blue-600 bg-white rounded hover:bg-blue-50 transition";
+                isDrawingRoute = false; routePoints = [];
+                if(tempPolyline) map.removeLayer(tempPolyline);
+                status.classList.add('hidden'); btnFinish.classList.add('hidden'); closePanel();
+            } else if (mode === 'route') {
+                btnRoute.className = "py-2 border border-blue-500 bg-blue-500 text-white rounded hover:bg-blue-600 transition shadow-inner";
+                btnPoint.className = "py-2 border border-amber-500 text-amber-600 bg-white rounded hover:bg-amber-50 transition";
+                isDrawingRoute = true; routePoints = [];
+                if(currentTempMarker) map.removeLayer(currentTempMarker);
+                if(tempPolyline) map.removeLayer(tempPolyline);
+                tempPolyline = L.polyline([], { color: '#ef4444', weight: 4, dashArray: '5, 5' }).addTo(map);
+                status.classList.remove('hidden'); showToast("คลิกบนแผนที่เพื่อลากเส้นทาง"); closePanel();
+            }
+        }
+
+        function addRoutePoint(latlng) {
+            routePoints.push([latlng.lat, latlng.lng]);
+            tempPolyline.setLatLngs(routePoints);
+            if (routePoints.length >= 2) document.getElementById('btnFinishRoute').classList.remove('hidden');
+        }
+
+        function showRouteForm() {
+            if(routePoints.length < 2) return showToast("กรุณาวาดเส้นอย่างน้อย 2 จุด", true);
+            renderForm({ id: '', name: '', lat: JSON.stringify(routePoints), lng: '', schedule: '', responsible: '', details: '' }, true, true);
+        }
+
+        function showPointForm(lat, lng) {
+            if (currentTempMarker) map.removeLayer(currentTempMarker);
+            const tempIcon = L.divIcon({ className: 'custom-icon', html: `<div class="custom-marker w-8 h-8 !bg-amber-500 !border-white animate-bounce"><i class="fa-solid fa-plus"></i></div>`, iconSize: [32, 32], iconAnchor: [16, 16] });
+            currentTempMarker = L.marker([lat, lng], {icon: tempIcon}).addTo(map);
+            renderForm({ id: '', name: '', lat: lat, lng: lng, schedule: '', responsible: '', details: '' }, true, false);
+        }
+
+        function editLocation(id) {
+            const originalLoc = locationsData.find(l => l.id == id);
+            if(originalLoc) {
+                let loc = {...originalLoc};
+                if (id.toString().startsWith('route_') && loc.details && loc.details.toString().startsWith('[')) {
+                    loc.lat = loc.details; loc.details = '';
+                }
+                renderForm(loc, false, id.toString().startsWith('route_'));
+            }
+        }
+
+        function renderForm(data, isNew, isRouteMode) {
+            const title = isNew ? (isRouteMode ? 'บันทึกเส้นทางใหม่' : 'เพิ่มจุดจัดเก็บใหม่') : 'แก้ไขข้อมูล';
+            const icon = isRouteMode ? 'fa-route text-blue-500' : 'fa-pen-to-square text-amber-500';
+            
+            // ปรับส่วนหัวของฟอร์มให้เป็นระเบียบเช่นกัน
+            const html = `
+                <div class="flex justify-between items-start mb-4 border-b pb-3 border-gray-100">
+                    <h2 class="text-lg font-bold text-gray-800 flex items-start flex-1 pr-2 leading-tight">
+                        <i class="fa-solid ${icon} mr-2 mt-1"></i>${title}
+                    </h2>
+                    <button onclick="closePanel()" class="text-gray-500 bg-gray-100 hover:bg-gray-200 w-8 h-8 rounded-full transition shadow-sm flex justify-center items-center shrink-0 ml-1" title="ปิดหน้าต่าง">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                
+                <form id="dataForm" onsubmit="saveData(event, ${isRouteMode})" class="space-y-3 text-sm">
+                    <input type="hidden" id="f_id" value="${data.id}">
+                    <input type="hidden" id="f_lat" value='${data.lat}'>
+                    <input type="hidden" id="f_lng" value="${data.lng}">
+                    
+                    <div><label class="block text-gray-700 mb-1 text-xs font-medium">ชื่อ${isRouteMode ? 'เส้นทาง' : 'สถานที่'} *</label>
+                    <input type="text" id="f_name" value="${data.name}" required class="w-full border px-3 py-2 rounded-lg bg-gray-50 focus:ring-2 focus:ring-emerald-500 outline-none"></div>
+                    <div><label class="block text-gray-700 mb-1 text-xs font-medium">วันเวลาจัดเก็บ *</label>
+                    <input type="text" id="f_schedule" value="${data.schedule}" placeholder="เช่น จันทร์,พุธ 08:00น." required class="w-full border px-3 py-2 rounded-lg bg-gray-50 focus:ring-2 focus:ring-emerald-500 outline-none"></div>
+                    <div><label class="block text-gray-700 mb-1 text-xs font-medium">ชื่อผู้รับผิดชอบ</label>
+                    <input type="text" id="f_responsible" value="${data.responsible}" class="w-full border px-3 py-2 rounded-lg bg-gray-50 focus:ring-2 focus:ring-emerald-500 outline-none"></div>
+                    <div><label class="block text-gray-700 mb-1 text-xs font-medium">รายละเอียดเพิ่มเติม</label>
+                    <textarea id="f_details" rows="2" class="w-full border px-3 py-2 rounded-lg bg-gray-50 focus:ring-2 focus:ring-emerald-500 outline-none">${(data.details && data.details.toString().startsWith('[')) ? '' : (data.details || '')}</textarea></div>
+                    <div class="pt-3"><button type="submit" id="btnSave" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg font-medium transition shadow-md">
+                    <i class="fa-solid fa-save mr-1"></i> บันทึกข้อมูล</button></div>
+                </form>
+            `;
+            document.getElementById('panelContent').innerHTML = html;
+            openPanel();
+        }
+
+        async function saveData(event, isRoute) {
+            event.preventDefault();
+            const btn = document.getElementById('btnSave');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังบันทึก...';
+            btn.disabled = true;
+
+            let finalId = document.getElementById('f_id').value;
+            if (!finalId && isRoute) finalId = 'route_' + Date.now();
+
+            const payload = {
+                action: 'save', id: finalId, name: document.getElementById('f_name').value, lat: document.getElementById('f_lat').value,
+                lng: document.getElementById('f_lng').value, schedule: document.getElementById('f_schedule').value,
+                responsible: document.getElementById('f_responsible').value, details: document.getElementById('f_details').value,
+            };
+
+            if (!GAS_URL) {
+                setTimeout(() => {
+                    if (!payload.id) payload.id = Date.now().toString();
+                    const idx = locationsData.findIndex(l => l.id == payload.id);
+                    if (idx !== -1) locationsData[idx] = payload; else locationsData.push(payload);
+                    finalizeSave(); showToast("บันทึกข้อมูลจำลองสำเร็จ");
+                }, 800);
+                return;
+            }
+
+            try {
+                await fetch(GAS_URL, { 
+                    method: 'POST', mode: 'no-cors', cache: 'no-cache', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify(payload) 
+                });
+                showToast("บันทึกข้อมูลสำเร็จ กำลังอัปเดต...");
+                setTimeout(async () => { await loadData(); finalizeSave(); }, 1500);
+            } catch (error) {
+                showToast("เกิดข้อผิดพลาด", true); btn.innerHTML = '<i class="fa-solid fa-save mr-1"></i> ลองอีกครั้ง'; btn.disabled = false;
+            }
+        }
+
+        function finalizeSave() {
+            if (currentTempMarker) map.removeLayer(currentTempMarker);
+            if (tempPolyline) map.removeLayer(tempPolyline);
+            currentTempMarker = null; tempPolyline = null; isDrawingRoute = false; routePoints = [];
+            setMode('point'); renderData(); closePanel();
+        }
+
+        function promptDelete(id) {
+            itemToDelete = id;
+            document.getElementById('confirmModal').classList.remove('hidden');
+            document.getElementById('confirmDeleteBtn').onclick = executeDelete;
+        }
+
+        /** ตรวจสอบระบบลบข้อมูล (แก้ไขใหม่ให้รัดกุมขึ้น) */
+        async function executeDelete() {
+            if(!itemToDelete) return;
+            closeModal('confirmModal'); 
+            closePanel(); 
+            showToast("กำลังลบข้อมูล...");
+            
+            if (!GAS_URL) {
+                locationsData = locationsData.filter(l => l.id != itemToDelete);
+                renderData(); showToast("ลบข้อมูลจำลองสำเร็จ"); itemToDelete = null; return;
+            }
+            
+            try {
+                await fetch(GAS_URL, { 
+                    method: 'POST', mode: 'no-cors', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete', id: itemToDelete }) 
+                });
+                showToast("ลบข้อมูลสำเร็จ กำลังอัปเดตหน้าจอ...");
+                
+                // โหลดข้อมูลใหม่หลังจากลบ
+                setTimeout(async () => { 
+                    await loadData(); 
+                }, 1500);
+                
+            } catch(e) { 
+                showToast("ลบไม่สำเร็จ กรุณาลองใหม่", true); 
+            }
+            itemToDelete = null;
+        }
+
+        function handleSearch() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = locationsData.filter(loc => loc.name.toLowerCase().includes(query) || loc.schedule.toLowerCase().includes(query));
+            renderData(filtered);
+        }
+
+        function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
+
+        let toastTimeout;
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerHTML = isError ? `<i class="fa-solid fa-circle-xmark text-red-400"></i> ${message}` : `<i class="fa-solid fa-circle-check text-emerald-400"></i> ${message}`;
+            toast.className = `fixed top-4 right-4 text-white px-4 py-3 rounded-lg shadow-xl transform transition-transform duration-300 z-[200] ${isError ? 'bg-red-800' : 'bg-gray-800'}`;
+            toast.classList.remove('translate-y-[-150%]');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => toast.classList.add('translate-y-[-150%]'), 3500);
+        }
+        
+        document.getElementById('adminPassword').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') verifyPassword();
+        });
+    </script>
+</body>
+</html>
