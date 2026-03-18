@@ -135,7 +135,7 @@
     <div id="passwordModal" class="fixed inset-0 bg-black/60 hidden z-[100] flex items-center justify-center backdrop-blur-sm transition-opacity">
         <div class="bg-white p-6 rounded-xl w-80 shadow-2xl transform scale-95 transition-transform">
             <h3 class="text-lg font-bold mb-2 text-gray-800"><i class="fa-solid fa-lock text-emerald-600 mr-2"></i>ผู้ดูแลระบบ</h3>
-            <p class="text-xs text-gray-500 mb-4">กรุณาใส่รหัสผ่านเพื่อเข้าสู่ระบบ</p>
+            <p class="text-xs text-gray-500 mb-4">ระบบตรวจสอบรหัสผ่านเชื่อมต่อกับ Google Sheet โดยตรง</p>
             <input type="password" id="adminPassword" class="w-full border p-2 rounded-lg mb-4 focus:ring-2 focus:ring-emerald-500 outline-none bg-gray-50" placeholder="รหัสผ่าน">
             <div class="flex justify-end gap-2">
                 <button onclick="closeModal('passwordModal')" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200">ยกเลิก</button>
@@ -188,6 +188,11 @@
         // ตัวแปรเก็บตำแหน่งผู้ใช้
         let userMarker = null;
         let userCircle = null;
+
+        // สีของเส้นทาง (Palette) และตัวเก็บค่าสี
+        const ROUTE_PALETTE = ['#3b82f6', '#ef4444', '#10b981', '#8b5cf6', '#f97316', '#ec4899', '#06b6d4'];
+        let routeColorMap = {};
+        let routeColorIndex = 0;
 
         // สถานะการวาดเส้นทาง
         let adminAction = 'point'; 
@@ -291,7 +296,8 @@
             if (currentHighlightId && layerMap[currentHighlightId]) {
                 const prevLayer = layerMap[currentHighlightId];
                 if (currentHighlightId.toString().startsWith('route_')) {
-                    prevLayer.setStyle({ color: '#3b82f6', weight: 5, opacity: 0.8 });
+                    const originalColor = routeColorMap[currentHighlightId] || '#3b82f6';
+                    prevLayer.setStyle({ color: originalColor, weight: 5, opacity: 0.8 });
                 } else {
                     prevLayer.setIcon(createIcon(false));
                     prevLayer.setZIndexOffset(0);
@@ -341,6 +347,14 @@
 
             dataToRender.forEach(loc => {
                 if (loc.id.toString().startsWith('route_')) {
+                    
+                    // กำหนดสีให้เส้นทางแบบถาวร
+                    if (!routeColorMap[loc.id]) {
+                        routeColorMap[loc.id] = ROUTE_PALETTE[routeColorIndex % ROUTE_PALETTE.length];
+                        routeColorIndex++;
+                    }
+                    const routeColor = routeColorMap[loc.id];
+
                     try {
                         let coordsStr = (loc.lat && loc.lat.toString().startsWith('[')) ? loc.lat : loc.details;
                         const coords = JSON.parse(coordsStr);
@@ -356,9 +370,9 @@
                                 viewDetails(loc.id);
                             });
 
-                            // เส้นทางจริง
+                            // เส้นทางจริง (ใช้สีที่กำหนด)
                             const polyline = L.polyline(coords, { 
-                                color: '#3b82f6', weight: 5, opacity: 0.8, bubblingMouseEvents: false 
+                                color: routeColor, weight: 5, opacity: 0.8, bubblingMouseEvents: false 
                             }).addTo(routesGroup);
                             
                             polyline.on('click', () => {
@@ -419,7 +433,8 @@
                     hideMobileList(); // ซ่อนรายการเมื่อกดเลือกบนมือถือ
                 };
                 
-                const icon = isRoute ? '<i class="fa-solid fa-route text-blue-500 mr-1"></i>' : '';
+                const routeColor = routeColorMap[loc.id] || '#3b82f6';
+                const icon = isRoute ? `<i class="fa-solid fa-route mr-1" style="color: ${routeColor}"></i>` : '';
                 item.innerHTML = `
                     <div class="font-medium text-gray-800">${icon} ${loc.name}</div>
                     <div class="text-xs text-gray-500 mt-1"><i class="fa-regular fa-clock mr-1"></i> ${loc.schedule}</div>
@@ -440,7 +455,8 @@
             let html = '';
             dataToRender.forEach((loc, index) => {
                 const isRoute = loc.id.toString().startsWith('route_');
-                const icon = isRoute ? '<i class="fa-solid fa-route text-amber-400 mx-1"></i>' : '<i class="fa-solid fa-location-dot text-amber-400 mx-1"></i>';
+                const routeColor = routeColorMap[loc.id] || '#fbbf24';
+                const icon = isRoute ? `<i class="fa-solid fa-route mx-1" style="color: ${routeColor}"></i>` : '<i class="fa-solid fa-location-dot text-amber-400 mx-1"></i>';
                 
                 html += `<span class="mx-4 text-emerald-50 cursor-pointer hover:text-white transition" onclick="highlightAndShowDetails('${loc.id}')">${icon} <span class="font-medium">${loc.name}</span> : <span class="text-emerald-200">${loc.schedule}</span></span>`;
                 
@@ -472,12 +488,13 @@
             const isRoute = loc.id.toString().startsWith('route_');
 
             highlightFeature(id);
+            const routeColor = routeColorMap[loc.id] || '#f59e0b';
 
             // โครงสร้างส่วน Header ที่ป้องกันการซ้อนทับของปุ่มอย่างสมบูรณ์
             let html = `
                 <div class="flex justify-between items-start mb-4 border-b pb-3 border-gray-100">
                     <h2 class="text-lg font-bold text-gray-800 flex items-start flex-1 pr-2 leading-tight">
-                        ${isRoute ? '<i class="fa-solid fa-route text-amber-500 mr-2 mt-1"></i>' : ''}
+                        ${isRoute ? `<i class="fa-solid fa-route mr-2 mt-1" style="color: ${routeColor}"></i>` : ''}
                         ${loc.name}
                     </h2>
                     
