@@ -198,9 +198,9 @@
         
         // ข้อมูลจำลอง
         const mockData = [
-            { id: "1", name: "จุดรวมขยะ ซอย 1", lat: 13.7563, lng: 100.5018, schedule: "จันทร์, พุธ, ศุกร์ (08:00)", responsible: "นายสมชาย ใจดี", details: "แยกขยะเปียกและแห้ง" },
-            { id: "2", name: "หน้าสวนสาธารณะชุมชน", lat: 13.7580, lng: 100.5040, schedule: "อังคาร, พฤหัส, เสาร์ (09:00)", responsible: "นายมานะ อดทน", details: "มีถังขยะอันตราย" },
-            { id: "route_1", name: "เส้นทางรถขยะสาย A", lat: "[[13.7550,100.5010],[13.7563,100.5018],[13.7580,100.5040]]", lng: "", schedule: "ทุกวัน (07:00)", responsible: "ทีมงานเทศบาล", details: "รถเก็บขยะคันสีเขียว ทะเบียน 1234" }
+            { id: "1", name: "จุดรวมขยะ ซอย 1", lat: 13.6966, lng: 100.5024, schedule: "จันทร์, พุธ, ศุกร์ (08:00)", responsible: "นายสมชาย ใจดี", details: "แยกขยะเปียกและแห้ง" },
+            { id: "2", name: "หน้าสวนสาธารณะชุมชน", lat: 13.7580, lng: 100.5024, schedule: "อังคาร, พฤหัส, เสาร์ (09:00)", responsible: "นายมานะ อดทน", details: "มีถังขยะอันตราย" },
+            { id: "route_1", name: "เส้นทางรถขยะสาย A", lat: "[[13.7550,100.5010],[13.6966,100.5018],[13.7580,100.5024]]", lng: "", schedule: "ทุกวัน (07:00)", responsible: "ทีมงานเทศบาล", details: "รถเก็บขยะคันสีเขียว ทะเบียน 1234" }
         ];
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -210,7 +210,7 @@
         });
 
         function initMap() {
-            map = L.map('map', {zoomControl: false}).setView([13.7563, 100.5018], 15);
+            map = L.map('map', {zoomControl: false}).setView([13.6966, 100.5024], 15);
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
             // ใช้ CartoDB เพื่อป้องกันปัญหา 403 Access Blocked ของ OSM
