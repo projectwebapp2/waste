@@ -59,7 +59,7 @@
     <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative w-full">
 
         <!-- Header / Sidebar -->
-        <div class="bg-white shadow-md z-40 w-full md:w-80 lg:w-96 flex flex-col h-auto md:h-full shrink-0">
+        <div class="bg-white shadow-md z-40 w-full md:w-80 lg:w-96 flex flex-col h-auto md:h-full shrink-0 relative">
             <!-- หัวเว็บ -->
             <div class="p-4 bg-emerald-600 text-white flex justify-between items-center shrink-0">
                 <div>
@@ -76,13 +76,14 @@
                 <div class="relative">
                     <input type="text" id="searchInput" placeholder="ค้นหาสถานที่, ชื่อจุดเก็บ..." 
                         class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50"
-                        onkeyup="handleSearch()">
+                        onkeyup="handleSearch()"
+                        onfocus="if(window.innerWidth < 768) document.getElementById('locationList').classList.remove('hidden')">
                     <i class="fa-solid fa-search absolute left-3 top-3 text-gray-400"></i>
                 </div>
             </div>
 
-            <!-- รายการสถานที่ด้านซ้าย -->
-            <div class="flex-1 overflow-y-auto p-2 hidden md:block" id="locationList">
+            <!-- รายการสถานที่ด้านซ้าย (บนโทรศัพท์มือถือจะเป็น Dropdown ลอยทับแผนที่) -->
+            <div class="absolute md:static top-full left-0 w-full bg-white md:bg-transparent shadow-2xl md:shadow-none z-[1000] md:z-auto max-h-[50vh] md:max-h-none overflow-y-auto hidden md:block p-2 flex-1 rounded-b-xl border-b border-gray-200 md:border-none md:rounded-none" id="locationList">
                 <div class="text-center text-gray-500 py-4"><i class="fa-solid fa-spinner fa-spin mr-2"></i>กำลังโหลดข้อมูล...</div>
             </div>
             
@@ -110,7 +111,7 @@
         <div class="flex-1 relative h-full">
             <div id="map" class="w-full h-full"></div>
 
-            <!-- ปุ่มระบุตำแหน่งของฉัน (เพิ่มใหม่) -->
+            <!-- ปุ่มระบุตำแหน่งของฉัน -->
             <button onclick="locateUser()" class="absolute bottom-[90px] right-[10px] z-[400] bg-white border-2 border-gray-400/20 shadow-[0_1px_5px_rgba(0,0,0,0.4)] rounded-md text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition w-[34px] h-[34px] flex items-center justify-center group" title="ตำแหน่งของฉัน">
                 <i class="fa-solid fa-location-crosshairs text-lg group-hover:scale-110 transition-transform"></i>
             </button>
@@ -184,7 +185,7 @@
         let layerMap = {}; 
         let currentHighlightId = null; 
 
-        // ตัวแปรเก็บตำแหน่งผู้ใช้ (เพิ่มใหม่)
+        // ตัวแปรเก็บตำแหน่งผู้ใช้
         let userMarker = null;
         let userCircle = null;
 
@@ -198,19 +199,26 @@
         
         // ข้อมูลจำลอง
         const mockData = [
-            { id: "1", name: "จุดรวมขยะ ซอย 1", lat: 13.6966, lng: 100.5024, schedule: "จันทร์, พุธ, ศุกร์ (08:00)", responsible: "นายสมชาย ใจดี", details: "แยกขยะเปียกและแห้ง" },
-            { id: "2", name: "หน้าสวนสาธารณะชุมชน", lat: 13.7580, lng: 100.5024, schedule: "อังคาร, พฤหัส, เสาร์ (09:00)", responsible: "นายมานะ อดทน", details: "มีถังขยะอันตราย" },
-            { id: "route_1", name: "เส้นทางรถขยะสาย A", lat: "[[13.7550,100.5010],[13.6966,100.5018],[13.7580,100.5024]]", lng: "", schedule: "ทุกวัน (07:00)", responsible: "ทีมงานเทศบาล", details: "รถเก็บขยะคันสีเขียว ทะเบียน 1234" }
+            { id: "1", name: "จุดรวมขยะ ซอย 1", lat: 13.7563, lng: 100.5018, schedule: "จันทร์, พุธ, ศุกร์ (08:00)", responsible: "นายสมชาย ใจดี", details: "แยกขยะเปียกและแห้ง" },
+            { id: "2", name: "หน้าสวนสาธารณะชุมชน", lat: 13.7580, lng: 100.5040, schedule: "อังคาร, พฤหัส, เสาร์ (09:00)", responsible: "นายมานะ อดทน", details: "มีถังขยะอันตราย" },
+            { id: "route_1", name: "เส้นทางรถขยะสาย A", lat: "[[13.7550,100.5010],[13.7563,100.5018],[13.7580,100.5040]]", lng: "", schedule: "ทุกวัน (07:00)", responsible: "ทีมงานเทศบาล", details: "รถเก็บขยะคันสีเขียว ทะเบียน 1234" }
         ];
 
         document.addEventListener('DOMContentLoaded', () => {
-            initMap();             // 1. สร้างแผนที่และเลเยอร์ก่อน
-            checkAdminSession();   // 2. ตรวจสอบสถานะล็อกอินและอัปเดต UI ถ้ายังไม่หมดอายุ
-            loadData();            // 3. โหลดข้อมูลจาก Google Sheet
+            initMap();             
+            checkAdminSession();   
+            loadData();            
         });
 
+        // ฟังก์ชันช่วยซ่อน List บนมือถือ
+        function hideMobileList() {
+            if (window.innerWidth < 768) {
+                document.getElementById('locationList').classList.add('hidden');
+            }
+        }
+
         function initMap() {
-            map = L.map('map', {zoomControl: false}).setView([13.6966, 100.5024], 15);
+            map = L.map('map', {zoomControl: false}).setView([13.7563, 100.5018], 15);
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
             // ใช้ CartoDB เพื่อป้องกันปัญหา 403 Access Blocked ของ OSM
@@ -222,6 +230,8 @@
             markersGroup = L.featureGroup().addTo(map);
 
             map.on('click', function(e) {
+                hideMobileList(); // ซ่อนรายการค้นหาเมื่อจิ้มแผนที่
+
                 if (!isAdminMode) {
                     closePanel();
                     return;
@@ -320,7 +330,7 @@
          * การแสดงผล (Render) แผนที่, รายการ, และแบนเนอร์
          * ========================================== */
         function renderData(dataToRender = locationsData) {
-            if(!markersGroup || !routesGroup) return; // ป้องกัน Error หาก initMap ยังไม่ทำงาน
+            if(!markersGroup || !routesGroup) return; 
 
             markersGroup.clearLayers();
             routesGroup.clearLayers();
@@ -336,7 +346,7 @@
                         const coords = JSON.parse(coordsStr);
                         if (Array.isArray(coords) && coords.length > 0) {
                             
-                            // Hit Area: พื้นที่สัมผัสขนาดใหญ่ให้มือถือแตะโดนง่าย ป้องกันคลิกทะลุด้วย bubblingMouseEvents: false
+                            // Hit Area: พื้นที่สัมผัสขนาดใหญ่ให้มือถือแตะโดนง่าย ป้องกันคลิกทะลุ
                             const hitArea = L.polyline(coords, { 
                                 color: 'transparent', weight: 35, opacity: 0.01, bubblingMouseEvents: false 
                             }).addTo(routesGroup);
@@ -406,6 +416,7 @@
                     if(!isRoute && loc.lat) map.flyTo([loc.lat, loc.lng], 17);
                     else if(isRoute && layerMap[loc.id]) map.fitBounds(layerMap[loc.id].getBounds(), { padding: [30, 30], maxZoom: 17 });
                     viewDetails(loc.id);
+                    hideMobileList(); // ซ่อนรายการเมื่อกดเลือกบนมือถือ
                 };
                 
                 const icon = isRoute ? '<i class="fa-solid fa-route text-blue-500 mr-1"></i>' : '';
@@ -449,6 +460,7 @@
             if(!isRoute && loc.lat) map.flyTo([loc.lat, loc.lng], 17);
             else if(isRoute && layerMap[loc.id]) map.fitBounds(layerMap[loc.id].getBounds(), { padding: [30, 30], maxZoom: 17 });
             viewDetails(loc.id);
+            hideMobileList();
         }
 
         /** ==========================================
@@ -594,6 +606,7 @@
         }
 
         function requestAdminToggle() {
+            hideMobileList(); // ซ่อนเมื่อกดปุ่มกุญแจ
             if (isAdminMode) {
                 isAdminMode = false;
                 localStorage.removeItem(ADMIN_SESSION_KEY); // ล้างค่าเมื่อกดออกจากระบบ
@@ -860,9 +873,14 @@
             const query = document.getElementById('searchInput').value.toLowerCase();
             const filtered = locationsData.filter(loc => loc.name.toLowerCase().includes(query) || loc.schedule.toLowerCase().includes(query));
             renderData(filtered);
+
+            // แสดงรายการเมื่อมีการพิมพ์ค้นหาในมือถือ
+            if (window.innerWidth < 768) {
+                document.getElementById('locationList').classList.remove('hidden');
+            }
         }
 
-        // ระบบระบุตำแหน่งผู้ใช้และวาดรัศมี 100 เมตร (เพิ่มใหม่)
+        // ระบบระบุตำแหน่งผู้ใช้และวาดรัศมี 100 เมตร
         function locateUser() {
             if (!navigator.geolocation) {
                 showToast("เบราว์เซอร์ของคุณไม่รองรับการระบุตำแหน่ง", true);
@@ -870,6 +888,7 @@
             }
             
             showToast("กำลังค้นหาตำแหน่งของคุณ...");
+            hideMobileList(); // ซ่อนรายการค้นหา
             
             navigator.geolocation.getCurrentPosition(
                 (position) => {
