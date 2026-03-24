@@ -69,9 +69,14 @@
                     <h1 class="text-xl font-semibold"><i class="fa-solid fa-truck-ramp-box mr-2"></i>การจัดเก็บขยะ</h1>
                     <p class="text-emerald-100 text-sm">แผนที่เส้นทางและตารางเวลาจัดเก็บ</p>
                 </div>
-                <button id="adminToggle" onclick="requestAdminToggle()" class="bg-emerald-700 hover:bg-emerald-800 p-2 rounded-full text-xs transition">
-                    <i class="fa-solid fa-user-lock"></i>
-                </button>
+                <div class="flex gap-2">
+                    <button onclick="showScheduleTable()" class="bg-emerald-700 hover:bg-emerald-800 p-2 rounded-full text-xs transition" title="ดูตารางเวลาจัดเก็บ">
+                        <i class="fa-solid fa-table-list"></i>
+                    </button>
+                    <button id="adminToggle" onclick="requestAdminToggle()" class="bg-emerald-700 hover:bg-emerald-800 p-2 rounded-full text-xs transition" title="ผู้ดูแลระบบ">
+                        <i class="fa-solid fa-user-lock"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- ช่องค้นหา -->
@@ -157,6 +162,42 @@
             <div class="flex justify-end gap-2">
                 <button onclick="closeModal('confirmModal')" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200">ยกเลิก</button>
                 <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 shadow">ลบข้อมูล</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Schedule Table Modal -->
+    <div id="scheduleModal" class="fixed inset-0 bg-black/60 hidden z-[200] flex items-center justify-center backdrop-blur-sm transition-opacity p-4">
+        <div class="bg-white rounded-xl w-full max-w-5xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+            <div class="p-4 border-b flex justify-between items-center bg-emerald-50 shrink-0">
+                <h3 class="text-lg font-bold text-emerald-800"><i class="fa-solid fa-calendar-days mr-2"></i>ตารางเวลาการจัดเก็บขยะ</h3>
+                <button onclick="closeModal('scheduleModal')" class="text-gray-500 hover:bg-gray-200 w-8 h-8 rounded-full transition flex justify-center items-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <!-- เนื้อหาตาราง -->
+            <div class="overflow-x-auto overflow-y-auto flex-1 p-0">
+                <table class="w-full text-left border-collapse text-sm min-w-[600px]">
+                    <thead class="sticky top-0 bg-gray-100 shadow-sm z-10">
+                        <tr class="text-gray-700">
+                            <th class="p-3 border-b text-center w-16">ประเภท</th>
+                            <th class="p-3 border-b">สถานที่ / เส้นทาง</th>
+                            <th class="p-3 border-b">วันและเวลาจัดเก็บ</th>
+                            <th class="p-3 border-b">ผู้รับผิดชอบ</th>
+                            <th class="p-3 border-b text-center admin-col hidden w-24">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scheduleTableBody">
+                        <!-- Rows -->
+                    </tbody>
+                </table>
+            </div>
+            <!-- Footer ตาราง -->
+            <div class="p-4 border-t bg-gray-50 flex justify-between items-center shrink-0">
+                <div class="text-xs text-gray-500" id="scheduleCount">รวม 0 รายการ</div>
+                <button class="hidden px-4 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 shadow admin-col transition" onclick="closeModal('scheduleModal'); showToast('คลิกบนแผนที่เพื่อเพิ่มจุดจัดเก็บ หรือสลับไปวาดเส้นทาง', false);">
+                    <i class="fa-solid fa-location-dot mr-1"></i> เพิ่มข้อมูลบนแผนที่
+                </button>
             </div>
         </div>
     </div>
@@ -303,6 +344,79 @@
         }
 
         /** ==========================================
+         * ระบบตารางเวลา (Schedule Table)
+         * ========================================== */
+        function showScheduleTable() {
+            renderScheduleTable();
+            document.getElementById('scheduleModal').classList.remove('hidden');
+        }
+
+        function renderScheduleTable() {
+            const tbody = document.getElementById('scheduleTableBody');
+            let html = '';
+            
+            locationsData.forEach(loc => {
+                const isRoute = loc.id.toString().startsWith('route_');
+                // ดึงสีตามเส้นทาง (ถ้าเป็นจุดให้ใช้สีเขียว)
+                const routeColor = isRoute ? (routeColorMap[loc.id] || '#3b82f6') : '#10b981';
+                const icon = isRoute ? `<i class="fa-solid fa-route" style="color: ${routeColor}" title="เส้นทาง"></i>` : `<i class="fa-solid fa-location-dot" style="color: ${routeColor}" title="จุดจัดเก็บ"></i>`;
+                
+                html += `
+                    <tr class="border-b hover:bg-gray-50 transition">
+                        <td class="p-3 text-center text-lg">${icon}</td>
+                        <td class="p-3 font-medium text-gray-800">${loc.name}</td>
+                        <td class="p-3 text-emerald-600">${loc.schedule || '-'}</td>
+                        <td class="p-3 text-gray-600">${loc.responsible || '-'}</td>
+                        <td class="p-3 text-center admin-col ${isAdminMode ? '' : 'hidden'}">
+                            <button onclick="editFromTable('${loc.id}')" class="text-amber-600 bg-amber-50 border border-amber-200 hover:bg-amber-100 w-8 h-8 rounded-md transition" title="แก้ไข">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="deleteFromTable('${loc.id}')" class="text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 w-8 h-8 rounded-md transition ml-1" title="ลบ">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            if (locationsData.length === 0) {
+                html = `<tr><td colspan="5" class="p-8 text-center text-gray-500">ไม่พบข้อมูลตารางจัดเก็บ</td></tr>`;
+            }
+            
+            tbody.innerHTML = html;
+            document.getElementById('scheduleCount').innerText = `รวม ${locationsData.length} รายการ`;
+            
+            // แสดงคอลัมน์ "จัดการ" หากอยู่ในโหมดแอดมิน
+            document.querySelectorAll('.admin-col').forEach(el => {
+                if (isAdminMode) el.classList.remove('hidden');
+                else el.classList.add('hidden');
+            });
+        }
+
+        // ฟังก์ชันช่วยเมื่อกดปุ่ม "แก้ไข" จากในตาราง
+        function editFromTable(id) {
+            closeModal('scheduleModal');
+            const loc = locationsData.find(l => l.id == id);
+            if (!loc) return;
+            const isRoute = id.toString().startsWith('route_');
+            
+            // วิ่งไปหาเป้าหมายบนแผนที่ก่อน
+            if(!isRoute && loc.lat) map.flyTo([loc.lat, loc.lng], 17);
+            else if(isRoute && layerMap[loc.id]) map.fitBounds(layerMap[loc.id].getBounds(), { padding: [30, 30], maxZoom: 17 });
+            
+            // หน่วงเวลาเล็กน้อยแล้วเปิดหน้าต่างแก้ไข
+            setTimeout(() => {
+                editLocation(id);
+            }, 300);
+        }
+
+        // ฟังก์ชันช่วยเมื่อกดปุ่ม "ลบ" จากในตาราง
+        function deleteFromTable(id) {
+            closeModal('scheduleModal');
+            promptDelete(id);
+        }
+
+        /** ==========================================
          * ระบบการ Highlight (แสดงสี/เน้นรายการ)
          * ========================================== */
         function createIcon(isHighlight = false) {
@@ -430,6 +544,11 @@
             
             renderListUI(dataToRender);
             updateBanner(dataToRender);
+            
+            // อัปเดตตารางด้วยหากกำลังเปิดอยู่
+            if (!document.getElementById('scheduleModal').classList.contains('hidden')) {
+                renderScheduleTable();
+            }
         }
 
         function renderListUI(dataToRender = locationsData, isLoading = false) {
@@ -736,6 +855,11 @@
             }
             closePanel();
             renderData();
+            
+            // อัปเดตตารางหากถูกเปิดทิ้งไว้
+            if (!document.getElementById('scheduleModal').classList.contains('hidden')) {
+                renderScheduleTable();
+            }
         }
 
         function setMode(mode) {
