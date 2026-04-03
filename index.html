@@ -69,8 +69,8 @@
             <!-- หัวเว็บ -->
             <div class="p-4 bg-emerald-600 text-white flex justify-between items-center shrink-0">
                 <div class="truncate pr-2">
-                    <h1 class="text-lg md:text-xl font-semibold truncate"><i class="fa-solid fa-truck-ramp-box mr-2"></i>ระบบจัดเก็บขยะ</h1>
-                    <p class="text-emerald-100 text-[10px] md:text-sm truncate">แผนที่เส้นทางและตารางเวลา</p>
+                    <h1 class="text-lg md:text-xl font-semibold truncate"><i class="fa-solid fa-truck-ramp-box mr-2"></i>การจัดเก็บขยะ</h1>
+                    <p class="text-emerald-100 text-[10px] md:text-sm truncate">แผนที่เส้นทางและตารางเวลาจัดเก็บ</p>
                 </div>
                 <div class="flex gap-1.5 md:gap-2 shrink-0">
                     <button id="btnTutorial" onclick="startTutorial(true)" class="bg-emerald-700 hover:bg-emerald-800 w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full text-xs transition shadow-inner" title="คำแนะนำการใช้งาน">
@@ -145,7 +145,7 @@
     <div id="passwordModal" class="fixed inset-0 bg-black/60 hidden z-[1000] flex items-center justify-center backdrop-blur-sm transition-opacity">
         <div class="bg-white p-6 rounded-xl w-80 shadow-2xl transform scale-95 transition-transform">
             <h3 class="text-lg font-bold mb-2 text-gray-800"><i class="fa-solid fa-lock text-emerald-600 mr-2"></i>ผู้ดูแลระบบ</h3>
-            <p class="text-xs text-gray-500 mb-4">ระบบตรวจสอบรหัสผ่านเชื่อมต่อกับ Google Sheet โดยตรง</p>
+            <p class="text-xs text-gray-500 mb-4">ใส่รหัสผ่านเพื่อเข้าสู่ระบบ</p>
             <input type="password" id="adminPassword" class="w-full border p-2 rounded-lg mb-4 focus:ring-2 focus:ring-emerald-500 outline-none bg-gray-50" placeholder="รหัสผ่าน">
             <div class="flex justify-end gap-2">
                 <button onclick="closeModal('passwordModal')" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition">ยกเลิก</button>
@@ -430,7 +430,7 @@
             locationsData.forEach(loc => {
                 const isRoute = loc.id.toString().startsWith('route_');
                 const routeColor = isRoute ? (routeColorMap[loc.id] || '#3b82f6') : '#10b981';
-                const icon = isRoute ? `<i class="fa-solid fa-route" style="color: ${routeColor}" title="เส้นทาง"></i>` : `<i class="fa-solid fa-location-dot" style="color: ${routeColor}" title="จุดจัดเก็บ"></i>`;
+                const icon = isRoute ? `<i class="fa-solid fa-route" style="color: ${routeColor}" title="เส้นทาง"></i>` : `<i class="fa-solid fa-trash-can text-emerald-500" title="จุดจัดเก็บ"></i>`;
                 html += `<tr class="border-b hover:bg-gray-50 transition">
                         <td class="p-3 text-center text-lg">${icon}</td><td class="p-3 font-medium text-gray-800">${getDisplayName(loc.name)}</td>
                         <td class="p-3 text-emerald-600">${loc.schedule || '-'}</td><td class="p-3 text-gray-600">${loc.responsible || '-'}</td>
@@ -576,7 +576,7 @@
                 grouped[zone].forEach(loc => {
                     const isRoute = loc.id.toString().startsWith('route_');
                     const routeColor = routeColorMap[loc.id] || '#3b82f6';
-                    const icon = isRoute ? `<i class="fa-solid fa-route mr-1" style="color: ${routeColor}"></i>` : '';
+                    const icon = isRoute ? `<i class="fa-solid fa-route mr-1" style="color: ${routeColor}"></i>` : `<i class="fa-solid fa-trash-can mr-1 text-emerald-500"></i>`;
                     const itemDragHandle = isAdminMode ? `<div class="drag-handle text-gray-300 hover:text-gray-600 px-2 py-1 cursor-grab active:cursor-grabbing" onclick="event.stopPropagation()"><i class="fa-solid fa-grip-lines"></i></div>` : '';
                     
                     html += `
@@ -654,7 +654,7 @@
             dataToRender.forEach((loc, index) => {
                 const isRoute = loc.id.toString().startsWith('route_');
                 const routeColor = routeColorMap[loc.id] || '#fbbf24';
-                const icon = isRoute ? `<i class="fa-solid fa-route mx-1" style="color: ${routeColor}"></i>` : '<i class="fa-solid fa-location-dot text-amber-400 mx-1"></i>';
+                const icon = isRoute ? `<i class="fa-solid fa-route mx-1" style="color: ${routeColor}"></i>` : '<i class="fa-solid fa-trash-can text-emerald-400 mx-1"></i>';
                 html += `<span class="mx-4 text-emerald-50 cursor-pointer hover:text-white transition" onclick="highlightAndShowDetails('${loc.id}')">${icon} <span class="font-medium">${getDisplayName(loc.name)}</span> : <span class="text-emerald-200">${loc.schedule}</span></span>`;
                 if (index < dataToRender.length - 1) html += `<span class="text-emerald-600 text-[10px] align-middle">●</span>`;
             });
@@ -688,9 +688,9 @@
             let html = `
                 <div class="flex justify-between items-start mb-4 border-b pb-3 border-gray-100">
                     <div class="flex-1 pr-2">
-                        <div class="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded inline-block mb-1">${parsed.zone}</div>
+                        <div class="text-[16px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded inline-block mb-1">${parsed.zone}</div>
                         <h2 class="text-lg font-bold text-gray-800 flex items-start leading-tight">
-                            ${isRoute ? `<i class="fa-solid fa-route mr-2 mt-1" style="color: ${routeColor}"></i>` : ''}${parsed.name}
+                            ${isRoute ? `<i class="fa-solid fa-route mr-2 mt-1" style="color: ${routeColor}"></i>` : '<i class="fa-solid fa-trash-can text-emerald-500 mr-2 mt-1"></i>'}${parsed.name}
                         </h2>
                     </div>
                     <div class="flex gap-1.5 shrink-0 items-start">
