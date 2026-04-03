@@ -66,8 +66,8 @@
             <!-- หัวเว็บ -->
             <div class="p-4 bg-emerald-600 text-white flex justify-between items-center shrink-0">
                 <div class="truncate pr-2">
-                    <h1 class="text-lg md:text-xl font-semibold truncate"><i class="fa-solid fa-truck-ramp-box mr-2"></i>การจัดเก็บขยะ</h1>
-                    <p class="text-emerald-100 text-[10px] md:text-sm truncate">แผนที่เส้นทางและตารางเวลาจัดเก็บ</p>
+                    <h1 class="text-lg md:text-xl font-semibold truncate"><i class="fa-solid fa-truck-ramp-box mr-2"></i>ระบบจัดเก็บขยะ</h1>
+                    <p class="text-emerald-100 text-[10px] md:text-sm truncate">แผนที่เส้นทางและตารางเวลา</p>
                 </div>
                 <div class="flex gap-1.5 md:gap-2 shrink-0">
                     <button id="btnTutorial" onclick="startTutorial(true)" class="bg-emerald-700 hover:bg-emerald-800 w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full text-xs transition shadow-inner" title="คำแนะนำการใช้งาน">
@@ -83,7 +83,7 @@
             </div>
 
             <!-- ช่องค้นหา -->
-            <div class="p-4 border-b shrink-0">
+            <div class="p-4 border-b shrink-0 bg-white z-20">
                 <div id="searchBoxWrapper" class="relative">
                     <input type="text" id="searchInput" placeholder="ค้นหาสถานที่, ชื่อจุดเก็บ..." 
                         class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50 transition"
@@ -93,8 +93,8 @@
                 </div>
             </div>
 
-            <!-- รายการสถานที่ด้านซ้าย (บนโทรศัพท์มือถือจะเป็น Dropdown ลอยทับแผนที่) -->
-            <div class="absolute md:static top-full left-0 w-full bg-white md:bg-transparent shadow-2xl md:shadow-none z-[1000] md:z-auto max-h-[50vh] md:max-h-none overflow-y-auto hidden md:block p-2 flex-1 rounded-b-xl border-b border-gray-200 md:border-none md:rounded-none" id="locationList">
+            <!-- รายการสถานที่ด้านซ้าย (จัดกลุ่มแบบ Accordion) -->
+            <div class="absolute md:static top-full left-0 w-full bg-white md:bg-gray-50 shadow-2xl md:shadow-none z-[1000] md:z-auto max-h-[55vh] md:max-h-none overflow-y-auto hidden md:block p-2 flex-1 rounded-b-xl border-b border-gray-200 md:border-none md:rounded-none" id="locationList">
                 <div class="text-center text-gray-500 py-4"><i class="fa-solid fa-spinner fa-spin mr-2"></i>กำลังโหลดข้อมูล...</div>
             </div>
             
@@ -146,7 +146,7 @@
     <div id="passwordModal" class="fixed inset-0 bg-black/60 hidden z-[1000] flex items-center justify-center backdrop-blur-sm transition-opacity">
         <div class="bg-white p-6 rounded-xl w-80 shadow-2xl transform scale-95 transition-transform">
             <h3 class="text-lg font-bold mb-2 text-gray-800"><i class="fa-solid fa-lock text-emerald-600 mr-2"></i>ผู้ดูแลระบบ</h3>
-            <p class="text-xs text-gray-500 mb-4">ใส่รหัสผ่านเพื่อเข้าสู่ระบบ</p>
+            <p class="text-xs text-gray-500 mb-4">ระบบตรวจสอบรหัสผ่านเชื่อมต่อกับ Google Sheet โดยตรง</p>
             <input type="password" id="adminPassword" class="w-full border p-2 rounded-lg mb-4 focus:ring-2 focus:ring-emerald-500 outline-none bg-gray-50" placeholder="รหัสผ่าน">
             <div class="flex justify-end gap-2">
                 <button onclick="closeModal('passwordModal')" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition">ยกเลิก</button>
@@ -205,9 +205,8 @@
         </div>
     </div>
 
-    <!-- 4. Tutorial Overlay & Tooltip (ระบบแนะนำการใช้งาน) -->
+    <!-- 4. Tutorial Overlay & Tooltip -->
     <div id="tutorialOverlay" class="fixed inset-0 z-[9998] hidden pointer-events-none overflow-hidden">
-        <!-- เงาดำบังหน้าจอ และเจาะช่องสว่างที่เป้าหมาย -->
         <div id="tutorialHighlight" class="absolute border-4 border-emerald-400 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.65)] transition-all duration-500 ease-in-out"></div>
     </div>
     
@@ -224,6 +223,22 @@
         </div>
     </div>
 
+    <!-- 5. Rename Zone Modal (ระบบเปลี่ยนชื่อกลุ่ม) -->
+    <div id="renameZoneModal" class="fixed inset-0 bg-black/60 hidden z-[1000] flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="bg-white p-6 rounded-xl w-80 shadow-2xl">
+            <h3 class="text-lg font-bold mb-2 text-gray-800"><i class="fa-solid fa-pen-to-square text-amber-500 mr-2"></i>เปลี่ยนชื่อกลุ่ม/ชุมชน</h3>
+            <p class="text-xs text-gray-500 mb-4">ชื่อกลุ่มเดิม: <span id="oldZoneNameDisplay" class="font-bold text-emerald-700 text-sm"></span></p>
+            <form onsubmit="executeRenameZone(event)">
+                <input type="hidden" id="oldZoneInput">
+                <input type="text" id="newZoneInput" required class="w-full border p-2 rounded-lg mb-4 focus:ring-2 focus:ring-emerald-500 outline-none bg-gray-50" placeholder="พิมพ์ชื่อกลุ่มใหม่...">
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('renameZoneModal')" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition">ยกเลิก</button>
+                    <button type="submit" id="btnRenameZone" class="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 shadow transition flex items-center justify-center min-w-[80px]">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Toast แจ้งเตือน -->
     <div id="toast" class="fixed top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded shadow-lg transform transition-transform duration-300 translate-y-[-150%] z-[10000] flex items-center gap-2">
         <span id="toastMsg"></span>
@@ -235,7 +250,7 @@
          * ========================================== */
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxjKS-K3tYte5tpFPKsgdtLpHbx1jqkvdtRFvYxxjiB57rx8ZsIOCZnPnLixPYJ2oruPg/exec"; 
 
-        // การตั้งค่าเซสชัน (3 ชั่วโมง)
+        // การตั้งค่าเซสชัน
         const ADMIN_SESSION_KEY = 'garbage_map_admin_session';
         const SESSION_HOURS = 3; 
         let sessionTimeout;
@@ -247,15 +262,16 @@
         let locationsData = [];
         let isAdminMode = false;
         
-        // ตัวแปรเลเยอร์ Highlight
+        // ตัวแปรเลเยอร์ Highlight และ Accordion State
         let layerMap = {}; 
         let currentHighlightId = null; 
+        let groupToggleState = {}; 
 
         // ตัวแปรเก็บตำแหน่งผู้ใช้
         let userMarker = null;
         let userCircle = null;
 
-        // สีของเส้นทาง (Palette)
+        // สีของเส้นทาง
         const ROUTE_PALETTE = ['#3b82f6', '#ef4444', '#10b981', '#8b5cf6', '#f97316', '#ec4899', '#06b6d4'];
         let routeColorMap = {};
         let routeColorIndex = 0;
@@ -270,9 +286,10 @@
         
         // ข้อมูลจำลอง
         const mockData = [
-            { id: "1", name: "จุดรวมขยะ ซอย 1", lat: 13.7563, lng: 100.5018, schedule: "จันทร์, พุธ, ศุกร์ (08:00)", responsible: "นายสมชาย ใจดี", details: "แยกขยะเปียกและแห้ง" },
-            { id: "2", name: "หน้าสวนสาธารณะชุมชน", lat: 13.7580, lng: 100.5040, schedule: "อังคาร, พฤหัส, เสาร์ (09:00)", responsible: "นายมานะ อดทน", details: "มีถังขยะอันตราย" },
-            { id: "route_1", name: "เส้นทางรถขยะสาย A", lat: "[[13.7550,100.5010],[13.7563,100.5018],[13.7580,100.5040]]", lng: "", schedule: "ทุกวัน (07:00)", responsible: "ทีมงานเทศบาล", details: "รถเก็บขยะคันสีเขียว ทะเบียน 1234" }
+            { id: "1", name: "ชุมชนบางคอแหลม|จุดรวมขยะ ซอย 1", lat: 13.7563, lng: 100.5018, schedule: "จันทร์, พุธ, ศุกร์ (08:00)", responsible: "นายสมชาย ใจดี", details: "แยกขยะเปียกและแห้ง" },
+            { id: "2", name: "ชุมชนบางคอแหลม|หน้าสวนสาธารณะ", lat: 13.7580, lng: 100.5040, schedule: "อังคาร, พฤหัส, เสาร์ (09:00)", responsible: "นายมานะ อดทน", details: "มีถังขยะอันตราย" },
+            { id: "3", name: "ตลาดสดเทศบาล", lat: 13.7540, lng: 100.5060, schedule: "ทุกวัน (18:00)", responsible: "เทศบาล", details: "ไม่มีกลุ่ม จะถูกปัดไปทั่วไป" },
+            { id: "route_1", name: "ชุมชนบางคอแหลม|เส้นทางรถขยะสาย A", lat: "[[13.7550,100.5010],[13.7563,100.5018],[13.7580,100.5040]]", lng: "", schedule: "ทุกวัน (07:00)", responsible: "ทีมงานเทศบาล", details: "รถเก็บขยะคันสีเขียว ทะเบียน 1234" }
         ];
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -280,13 +297,11 @@
             checkAdminSession();   
             loadData();
             
-            // เริ่มต้นระบบ Tutorial หน่วงเวลาเล็กน้อยให้ UI โหลดเสร็จ
             setTimeout(() => {
                 startTutorial(false);
             }, 1000);
         });
 
-        // ฟังก์ชันช่วยซ่อน List บนมือถือ
         function hideMobileList() {
             if (window.innerWidth < 768) {
                 document.getElementById('locationList').classList.add('hidden');
@@ -294,22 +309,56 @@
         }
 
         /** ==========================================
+         * Helper Functions สำหรับระบบแยกกลุ่ม
+         * ========================================== */
+        function parseLocationName(rawName) {
+            if (!rawName) return { zone: 'ทั่วไป', name: 'ไม่มีชื่อ' };
+            const parts = rawName.split('|');
+            if (parts.length >= 2 && parts[0].trim() !== '') {
+                return { zone: parts[0].trim(), name: parts.slice(1).join('|').trim() };
+            }
+            return { zone: 'ทั่วไป', name: rawName.trim() };
+        }
+
+        function getDisplayName(rawName) {
+            const parsed = parseLocationName(rawName);
+            if (parsed.zone === 'ทั่วไป') return parsed.name;
+            return `${parsed.zone} - ${parsed.name}`;
+        }
+
+        function getZoneId(zone) {
+            return 'z_' + btoa(unescape(encodeURIComponent(zone))).replace(/=/g, '').replace(/\+/g, '').replace(/\//g, '');
+        }
+
+        window.toggleGroup = function(zoneStr, zId) {
+            groupToggleState[zoneStr] = !groupToggleState[zoneStr];
+            const groupDiv = document.getElementById(zId);
+            const icon = document.getElementById('icon-' + zId);
+            
+            if (groupToggleState[zoneStr]) {
+                groupDiv.classList.remove('hidden');
+                if(icon) { icon.classList.remove('fa-chevron-down'); icon.classList.add('fa-chevron-up'); }
+            } else {
+                groupDiv.classList.add('hidden');
+                if(icon) { icon.classList.remove('fa-chevron-up'); icon.classList.add('fa-chevron-down'); }
+            }
+        };
+
+        /** ==========================================
          * ระบบ Tutorial แนะนำการใช้งาน
          * ========================================== */
         let currentTutStep = 0;
         const tutorialSteps = [
             { id: 'topBannerWrapper', title: 'ประกาศแจ้งเตือน', text: 'แบนเนอร์แสดงภาพรวมจุดจัดเก็บขยะและเวลาแบบเรียลไทม์ คุณสามารถคลิกที่ชื่อจุดที่กำลังวิ่งอยู่ เพื่อกระโดดไปดูบนแผนที่ได้ทันที', pos: 'bottom' },
-            { id: 'searchBoxWrapper', title: 'ค้นหาอย่างรวดเร็ว', text: 'พิมพ์ชื่อสถานที่, ซอย, หรือเวลา เพื่อค้นหาจุดทิ้งขยะที่คุณต้องการได้อย่างรวดเร็วและแม่นยำ', pos: 'bottom' },
+            { id: 'searchBoxWrapper', title: 'ค้นหาและจัดกลุ่ม', text: 'พิมพ์ค้นหาได้ทันที! รายการสถานที่ด้านล่างถูกจัดกลุ่มให้เป็นระเบียบ คุณสามารถกดเปิดดูทีละกลุ่ม หรือใช้ช่องค้นหาเพื่อกางกลุ่มที่มีข้อมูลให้อัตโนมัติ', pos: 'bottom' },
             { id: 'btnSchedule', title: 'ตารางเวลาทั้งหมด', text: 'คลิกปุ่มนี้เพื่อเปิดดูตารางเวลาจัดเก็บขยะและเส้นทางทั้งหมด ในรูปแบบตารางที่ดูง่ายสบายตา', pos: 'bottom' },
-            { id: 'adminToggle', title: 'สำหรับเจ้าหน้าที่', text: 'เข้าสู่ระบบเพื่อจัดการข้อมูล สามารถเพิ่มจุดใหม่, วาดเส้นทางรถขยะ, แก้ไขเวลา, และลบข้อมูลได้ที่นี่', pos: 'bottom' },
+            { id: 'adminToggle', title: 'สำหรับเจ้าหน้าที่', text: 'เข้าสู่ระบบเพื่อจัดการข้อมูล สามารถเพิ่มจุดใหม่, จัดกลุ่ม, วาดเส้นทางรถขยะ, แก้ไขเวลา, และลบข้อมูลได้ที่นี่', pos: 'bottom' },
             { id: 'mapLayerControl', title: 'เปลี่ยนมุมมองแผนที่', text: 'สลับรูปแบบของแผนที่ได้ตามความต้องการ เช่น แผนที่ถนนแบบละเอียด, แผนที่ดาวเทียม หรือแผนที่สีสบายตา', pos: 'bottom' },
             { id: 'btnLocateUser', title: 'ค้นหาจุดใกล้ตัว', text: 'คลิกเพื่อระบุตำแหน่ง GPS ของคุณ ระบบจะวาดรัศมี 100 เมตร เพื่อช่วยคุณหาจุดทิ้งขยะที่ใกล้บ้านคุณที่สุด', pos: 'top' }
         ];
 
         function startTutorial(force = false) {
-            // เช็คว่าเคยดูแล้วหรือไม่ (ถ้า force = true คือการกดปุ่มตั้งใจดูเอง)
             if (!force && localStorage.getItem('garbage_map_tutorial_seen')) return;
-            
             document.getElementById('tutorialOverlay').classList.remove('hidden');
             document.getElementById('tutorialTooltip').classList.remove('hidden');
             currentTutStep = 0;
@@ -326,122 +375,63 @@
             const step = tutorialSteps[stepIndex];
             const targetEl = document.getElementById(step.id);
             
-            // ถ้าไม่เจอ Element ให้ข้ามไปอันถัดไป
-            if (!targetEl) {
-                nextTutorialStep();
-                return;
-            }
+            if (!targetEl) { nextTutorialStep(); return; }
 
             const rect = targetEl.getBoundingClientRect();
             
-            // วาดกรอบ Highlight ทับ Element เป้าหมาย
             const highlight = document.getElementById('tutorialHighlight');
             highlight.style.top = (rect.top - 6) + 'px';
             highlight.style.left = (rect.left - 6) + 'px';
             highlight.style.width = (rect.width + 12) + 'px';
             highlight.style.height = (rect.height + 12) + 'px';
 
-            // ใส่ข้อมูลลง Tooltip
             const tooltip = document.getElementById('tutorialTooltip');
             document.getElementById('tutTitle').innerHTML = `<i class="fa-solid fa-circle-info"></i> <span>${step.title}</span>`;
             document.getElementById('tutText').innerText = step.text;
             document.getElementById('tutStep').innerText = `${stepIndex + 1}/${tutorialSteps.length}`;
             
-            // ซ่อน/แสดง ปุ่มย้อนกลับ
-            if (stepIndex === 0) {
-                document.getElementById('tutPrevBtn').classList.add('hidden');
-            } else {
-                document.getElementById('tutPrevBtn').classList.remove('hidden');
-            }
+            if (stepIndex === 0) document.getElementById('tutPrevBtn').classList.add('hidden');
+            else document.getElementById('tutPrevBtn').classList.remove('hidden');
 
-            if (stepIndex === tutorialSteps.length - 1) {
-                document.getElementById('tutNextBtn').innerHTML = `เริ่มใช้งาน <i class="fa-solid fa-check ml-1"></i>`;
-            } else {
-                document.getElementById('tutNextBtn').innerHTML = `ต่อไป <i class="fa-solid fa-arrow-right ml-1"></i>`;
-            }
+            if (stepIndex === tutorialSteps.length - 1) document.getElementById('tutNextBtn').innerHTML = `เริ่มใช้งาน <i class="fa-solid fa-check ml-1"></i>`;
+            else document.getElementById('tutNextBtn').innerHTML = `ต่อไป <i class="fa-solid fa-arrow-right ml-1"></i>`;
 
-            // คำนวณตำแหน่ง Tooltip (หน่วงเวลาเล็กน้อยให้ DOM อัปเดตความสูงก่อน)
             setTimeout(() => {
                 let tooltipTop = rect.bottom + 16;
                 let tooltipLeft = rect.left;
 
-                // ถ้ากำหนดให้อยู่ด้านบน
-                if (step.pos === 'top') {
-                    tooltipTop = rect.top - tooltip.offsetHeight - 16;
-                }
-                
-                // ป้องกันล้นขอบขวา
-                if (tooltipLeft + tooltip.offsetWidth > window.innerWidth - 16) {
-                    tooltipLeft = window.innerWidth - tooltip.offsetWidth - 16;
-                }
-                // ป้องกันล้นขอบซ้าย
+                if (step.pos === 'top') tooltipTop = rect.top - tooltip.offsetHeight - 16;
+                if (tooltipLeft + tooltip.offsetWidth > window.innerWidth - 16) tooltipLeft = window.innerWidth - tooltip.offsetWidth - 16;
                 if (tooltipLeft < 16) tooltipLeft = 16;
-
-                // ป้องกันล้นขอบล่าง (ถ้ามันเกินจอ ให้ดีดกลับไปอยู่ข้างบนเป้าหมาย)
-                if (tooltipTop + tooltip.offsetHeight > window.innerHeight - 16) {
-                    tooltipTop = rect.top - tooltip.offsetHeight - 16; 
-                }
+                if (tooltipTop + tooltip.offsetHeight > window.innerHeight - 16) tooltipTop = rect.top - tooltip.offsetHeight - 16; 
 
                 tooltip.style.top = tooltipTop + 'px';
                 tooltip.style.left = tooltipLeft + 'px';
             }, 10);
         }
 
-        function nextTutorialStep() {
-            showTutorialStep(currentTutStep + 1);
-        }
-
-        function prevTutorialStep() {
-            if (currentTutStep > 0) {
-                showTutorialStep(currentTutStep - 1);
-            }
-        }
+        function nextTutorialStep() { showTutorialStep(currentTutStep + 1); }
+        function prevTutorialStep() { if (currentTutStep > 0) showTutorialStep(currentTutStep - 1); }
 
         function endTutorial() {
             document.getElementById('tutorialOverlay').classList.add('hidden');
             document.getElementById('tutorialTooltip').classList.add('hidden');
-            
-            // บันทึกว่าเคยดูแล้ว
             localStorage.setItem('garbage_map_tutorial_seen', 'true');
-            
-            // แจ้งเตือนเบาๆ ว่าสามารถกดดูใหม่ได้
-            setTimeout(() => {
-                showToast("คุณสามารถกดไอคอน 💡 เพื่อดูคำแนะนำนี้ได้อีกครั้ง", false);
-            }, 500);
+            setTimeout(() => { showToast("คุณสามารถกดไอคอน 💡 เพื่อดูคำแนะนำนี้ได้อีกครั้ง", false); }, 500);
         }
 
         /** ==========================================
          * ระบบแผนที่และการเลือก Layer แผนที่
          * ========================================== */
         function initMap() {
-            // สร้าง Layer แผนที่
-            const googleStreets = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-                maxZoom: 20, attribution: '&copy; Google Maps'
-            });
+            const googleStreets = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '&copy; Google Maps' });
+            const googleSat = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '&copy; Google Maps' });
+            const cartoLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 20 });
 
-            const googleSat = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                maxZoom: 20, attribution: '&copy; Google Maps'
-            });
-
-            const cartoLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 20
-            });
-
-            // สร้างแผนที่ (Google Streets เป็นค่าเริ่มต้น)
-            map = L.map('map', {
-                zoomControl: false,
-                layers: [googleStreets] 
-            }).setView([13.7563, 100.5018], 15);
-
+            map = L.map('map', { zoomControl: false, layers: [googleStreets] }).setView([13.7563, 100.5018], 15);
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-            const baseMaps = {
-                "🗺️ แผนที่ถนน (ละเอียด)": googleStreets,
-                "🌍 ดาวเทียม (สถานที่จริง)": googleSat,
-                "🎨 แผนที่สีอ่อน": cartoLight
-            };
-            
-            // สร้าง Layer Control และตั้ง ID ให้เพื่อให้ระบบ Tutorial ค้นหาเจอ
+            const baseMaps = { "🗺️ แผนที่ถนน (ละเอียด)": googleStreets, "🌍 ดาวเทียม (สถานที่จริง)": googleSat, "🎨 แผนที่สีอ่อน": cartoLight };
             const layerControl = L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
             layerControl.getContainer().id = 'mapLayerControl';
 
@@ -450,11 +440,7 @@
 
             map.on('click', function(e) {
                 hideMobileList(); 
-
-                if (!isAdminMode) {
-                    closePanel();
-                    return;
-                }
+                if (!isAdminMode) { closePanel(); return; }
                 if (adminAction === 'point') showPointForm(e.latlng.lat, e.latlng.lng);
                 else if (adminAction === 'route') addRoutePoint(e.latlng);
             });
@@ -463,10 +449,7 @@
         async function loadData() {
             renderListUI(null, true); 
             if (!GAS_URL) {
-                setTimeout(() => {
-                    locationsData = mockData;
-                    renderData();
-                }, 800);
+                setTimeout(() => { locationsData = mockData; renderData(); }, 800);
                 return;
             }
 
@@ -478,13 +461,11 @@
                     renderData();
                 } else {
                     showToast("ข้อผิดพลาด: " + result.message, true);
-                    renderListUI([]);
-                    updateBanner([]);
+                    renderListUI([]); updateBanner([]);
                 }
             } catch (error) {
                 showToast("ไม่สามารถเชื่อมต่อฐานข้อมูลได้", true);
-                renderListUI([]);
-                updateBanner([]);
+                renderListUI([]); updateBanner([]);
             }
         }
 
@@ -508,24 +489,18 @@
                 html += `
                     <tr class="border-b hover:bg-gray-50 transition">
                         <td class="p-3 text-center text-lg">${icon}</td>
-                        <td class="p-3 font-medium text-gray-800">${loc.name}</td>
+                        <td class="p-3 font-medium text-gray-800">${getDisplayName(loc.name)}</td>
                         <td class="p-3 text-emerald-600">${loc.schedule || '-'}</td>
                         <td class="p-3 text-gray-600">${loc.responsible || '-'}</td>
                         <td class="p-3 text-center admin-col ${isAdminMode ? '' : 'hidden'}">
-                            <button onclick="editFromTable('${loc.id}')" class="text-amber-600 bg-amber-50 border border-amber-200 hover:bg-amber-100 w-8 h-8 rounded-md transition" title="แก้ไข">
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
-                            <button onclick="deleteFromTable('${loc.id}')" class="text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 w-8 h-8 rounded-md transition ml-1" title="ลบ">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
+                            <button onclick="editFromTable('${loc.id}')" class="text-amber-600 bg-amber-50 border border-amber-200 hover:bg-amber-100 w-8 h-8 rounded-md transition" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteFromTable('${loc.id}')" class="text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 w-8 h-8 rounded-md transition ml-1" title="ลบ"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     </tr>
                 `;
             });
             
-            if (locationsData.length === 0) {
-                html = `<tr><td colspan="5" class="p-8 text-center text-gray-500">ไม่พบข้อมูลตารางจัดเก็บ</td></tr>`;
-            }
+            if (locationsData.length === 0) html = `<tr><td colspan="5" class="p-8 text-center text-gray-500">ไม่พบข้อมูลตารางจัดเก็บ</td></tr>`;
             
             tbody.innerHTML = html;
             document.getElementById('scheduleCount').innerText = `รวม ${locationsData.length} รายการ`;
@@ -554,7 +529,7 @@
         }
 
         /** ==========================================
-         * ระบบการ Highlight (แสดงสี/เน้นรายการ)
+         * ระบบการ Highlight และกางกลุ่ม
          * ========================================== */
         function createIcon(isHighlight = false) {
             return L.divIcon({
@@ -594,21 +569,35 @@
                 }
             }
 
+            const loc = locationsData.find(l => l.id == id);
+            if (loc) {
+                const parsed = parseLocationName(loc.name);
+                const zId = getZoneId(parsed.zone);
+                const groupDiv = document.getElementById(zId);
+                const icon = document.getElementById('icon-' + zId);
+                
+                if(groupDiv && groupDiv.classList.contains('hidden')) {
+                    groupDiv.classList.remove('hidden');
+                    if(icon) { icon.classList.remove('fa-chevron-down'); icon.classList.add('fa-chevron-up'); }
+                    groupToggleState[parsed.zone] = true;
+                }
+            }
+
             document.querySelectorAll('.list-item').forEach(el => {
                 el.classList.remove('border-amber-400', 'bg-amber-50', 'shadow-md');
-                el.classList.add('border-gray-200', 'bg-white');
+                el.classList.add('border-transparent', 'bg-white');
             });
 
             const activeItem = document.getElementById(`list-item-${id}`);
             if (activeItem) {
-                activeItem.classList.remove('border-gray-200', 'bg-white');
+                activeItem.classList.remove('border-transparent', 'bg-white');
                 activeItem.classList.add('border-amber-400', 'bg-amber-50', 'shadow-md');
                 activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         }
 
         /** ==========================================
-         * การแสดงผล (Render) แผนที่, รายการ, และแบนเนอร์
+         * การแสดงผล (Render) แผนที่, รายการแบบกลุ่ม, และแบนเนอร์
          * ========================================== */
         function renderData(dataToRender = locationsData) {
             if(!markersGroup || !routesGroup) return; 
@@ -622,7 +611,6 @@
 
             dataToRender.forEach(loc => {
                 if (loc.id.toString().startsWith('route_')) {
-                    
                     if (!routeColorMap[loc.id]) {
                         routeColorMap[loc.id] = ROUTE_PALETTE[routeColorIndex % ROUTE_PALETTE.length];
                         routeColorIndex++;
@@ -633,24 +621,11 @@
                         let coordsStr = (loc.lat && loc.lat.toString().startsWith('[')) ? loc.lat : loc.details;
                         const coords = JSON.parse(coordsStr);
                         if (Array.isArray(coords) && coords.length > 0) {
-                            
-                            const hitArea = L.polyline(coords, { 
-                                color: 'transparent', weight: 35, opacity: 0.01, bubblingMouseEvents: false 
-                            }).addTo(routesGroup);
-                            
-                            hitArea.on('click', () => {
-                                map.fitBounds(L.polyline(coords).getBounds(), { padding: [30, 30], maxZoom: 17 });
-                                viewDetails(loc.id);
-                            });
+                            const hitArea = L.polyline(coords, { color: 'transparent', weight: 35, opacity: 0.01, bubblingMouseEvents: false }).addTo(routesGroup);
+                            hitArea.on('click', () => { map.fitBounds(L.polyline(coords).getBounds(), { padding: [30, 30], maxZoom: 17 }); viewDetails(loc.id); });
 
-                            const polyline = L.polyline(coords, { 
-                                color: routeColor, weight: 5, opacity: 0.8, bubblingMouseEvents: false 
-                            }).addTo(routesGroup);
-                            
-                            polyline.on('click', () => {
-                                map.fitBounds(polyline.getBounds(), { padding: [30, 30], maxZoom: 17 });
-                                viewDetails(loc.id);
-                            });
+                            const polyline = L.polyline(coords, { color: routeColor, weight: 5, opacity: 0.8, bubblingMouseEvents: false }).addTo(routesGroup);
+                            polyline.on('click', () => { map.fitBounds(polyline.getBounds(), { padding: [30, 30], maxZoom: 17 }); viewDetails(loc.id); });
                             
                             layerMap[loc.id] = polyline;
                             bounds.extend(polyline.getBounds());
@@ -658,10 +633,7 @@
                     } catch(e) {}
                 } else if (loc.lat && loc.lng) {
                     const marker = L.marker([loc.lat, loc.lng], { icon: createIcon(false) });
-                    marker.on('click', () => {
-                        map.flyTo([loc.lat, loc.lng], 17);
-                        viewDetails(loc.id);
-                    });
+                    marker.on('click', () => { map.flyTo([loc.lat, loc.lng], 17); viewDetails(loc.id); });
                     
                     layerMap[loc.id] = marker;
                     markersGroup.addLayer(marker);
@@ -681,6 +653,7 @@
             }
         }
 
+        // ฟังก์ชันสร้างรายการหมวดหมู่ด้านซ้าย
         function renderListUI(dataToRender = locationsData, isLoading = false) {
             const list = document.getElementById('locationList');
             if (!list) return;
@@ -690,34 +663,77 @@
                 return;
             }
 
-            list.innerHTML = '';
             if (dataToRender.length === 0) {
                 list.innerHTML = '<div class="text-center text-gray-500 py-10">ไม่พบข้อมูล</div>';
                 return;
             }
 
+            // จัดกลุ่มข้อมูล
+            const grouped = {};
             dataToRender.forEach(loc => {
-                const isRoute = loc.id.toString().startsWith('route_');
-                const item = document.createElement('div');
-                item.id = `list-item-${loc.id}`; 
-                item.className = `list-item p-3 mb-2 border rounded-lg cursor-pointer transition hover:shadow-sm border-gray-200 bg-white ${isRoute ? 'hover:border-blue-400' : 'hover:border-emerald-400'}`;
-                
-                item.onclick = () => {
-                    if(!isRoute && loc.lat) map.flyTo([loc.lat, loc.lng], 17);
-                    else if(isRoute && layerMap[loc.id]) map.fitBounds(layerMap[loc.id].getBounds(), { padding: [30, 30], maxZoom: 17 });
-                    viewDetails(loc.id);
-                    hideMobileList(); 
-                };
-                
-                const routeColor = routeColorMap[loc.id] || '#3b82f6';
-                const icon = isRoute ? `<i class="fa-solid fa-route mr-1" style="color: ${routeColor}"></i>` : '';
-                item.innerHTML = `
-                    <div class="font-medium text-gray-800">${icon} ${loc.name}</div>
-                    <div class="text-xs text-gray-500 mt-1"><i class="fa-regular fa-clock mr-1"></i> ${loc.schedule}</div>
-                `;
-                list.appendChild(item);
+                const parsed = parseLocationName(loc.name);
+                if (!grouped[parsed.zone]) grouped[parsed.zone] = [];
+                grouped[parsed.zone].push({ ...loc, parsedName: parsed.name });
             });
+
+            let html = '';
+            const query = document.getElementById('searchInput').value.trim();
+            const isSearching = query !== '';
+
+            for (const zone in grouped) {
+                const zId = getZoneId(zone);
+                
+                if (!isSearching && groupToggleState[zone] === undefined) {
+                    groupToggleState[zone] = false;
+                }
+                let isOpen = isSearching ? true : groupToggleState[zone];
+
+                let editGroupBtn = isAdminMode ? `<button onclick="event.stopPropagation(); promptRenameZone('${zone.replace(/'/g, "\\'")}')" class="text-amber-600 bg-amber-100 hover:bg-amber-200 w-7 h-7 rounded flex items-center justify-center mr-2 transition shrink-0" title="เปลี่ยนชื่อกลุ่ม"><i class="fa-solid fa-pen text-[10px]"></i></button>` : '';
+
+                html += `
+                <div class="mb-3 bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm transition">
+                    <div onclick="toggleGroup('${zone.replace(/'/g, "\\'")}', '${zId}')" class="w-full flex justify-between items-center p-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold transition group flex-nowrap cursor-pointer select-none">
+                        <div class="flex items-center flex-1 min-w-0 pr-2">
+                            <i class="fa-solid fa-folder-open mr-2 text-emerald-600 group-hover:scale-110 transition shrink-0"></i> 
+                            <span class="truncate text-sm">${zone}</span> 
+                            <span class="ml-2 text-xs bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full shrink-0">${grouped[zone].length}</span>
+                        </div>
+                        <div class="flex items-center shrink-0">
+                            ${editGroupBtn}
+                            <i class="fa-solid fa-chevron-${isOpen ? 'up' : 'down'} text-emerald-600 transition-transform" id="icon-${zId}"></i>
+                        </div>
+                    </div>
+                    <div id="${zId}" class="${isOpen ? '' : 'hidden'} p-2 bg-gray-50/50 border-t border-emerald-100">
+                `;
+
+                grouped[zone].forEach(loc => {
+                    const isRoute = loc.id.toString().startsWith('route_');
+                    const routeColor = routeColorMap[loc.id] || '#3b82f6';
+                    const icon = isRoute ? `<i class="fa-solid fa-route mr-1" style="color: ${routeColor}"></i>` : '';
+                    
+                    html += `
+                        <div id="list-item-${loc.id}" 
+                             class="list-item p-3 mb-2 border-2 border-transparent rounded-lg cursor-pointer transition hover:shadow-md bg-white hover:border-emerald-300"
+                             onclick="window.handleListItemClick('${loc.id}', ${isRoute})">
+                            <div class="font-medium text-gray-800 text-sm truncate">${icon} ${loc.parsedName}</div>
+                            <div class="text-xs text-gray-500 mt-1 truncate"><i class="fa-regular fa-clock mr-1"></i> ${loc.schedule}</div>
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+            }
+
+            list.innerHTML = html;
         }
+
+        window.handleListItemClick = function(id, isRoute) {
+            const loc = locationsData.find(l => l.id == id);
+            if(!isRoute && loc.lat) map.flyTo([loc.lat, loc.lng], 17);
+            else if(isRoute && layerMap[id]) map.fitBounds(layerMap[id].getBounds(), { padding: [30, 30], maxZoom: 17 });
+            viewDetails(id);
+            hideMobileList(); 
+        };
 
         function updateBanner(dataToRender) {
             const bannerContent = document.getElementById('marqueeContent');
@@ -734,11 +750,9 @@
                 const routeColor = routeColorMap[loc.id] || '#fbbf24';
                 const icon = isRoute ? `<i class="fa-solid fa-route mx-1" style="color: ${routeColor}"></i>` : '<i class="fa-solid fa-location-dot text-amber-400 mx-1"></i>';
                 
-                html += `<span class="mx-4 text-emerald-50 cursor-pointer hover:text-white transition" onclick="highlightAndShowDetails('${loc.id}')">${icon} <span class="font-medium">${loc.name}</span> : <span class="text-emerald-200">${loc.schedule}</span></span>`;
+                html += `<span class="mx-4 text-emerald-50 cursor-pointer hover:text-white transition" onclick="highlightAndShowDetails('${loc.id}')">${icon} <span class="font-medium">${getDisplayName(loc.name)}</span> : <span class="text-emerald-200">${loc.schedule}</span></span>`;
                 
-                if (index < dataToRender.length - 1) {
-                    html += `<span class="text-emerald-600 text-[10px] align-middle">●</span>`;
-                }
+                if (index < dataToRender.length - 1) html += `<span class="text-emerald-600 text-[10px] align-middle">●</span>`;
             });
 
             bannerContent.innerHTML = html;
@@ -754,6 +768,27 @@
             hideMobileList();
         }
 
+        function handleSearch() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = locationsData.filter(loc => {
+                const displayName = getDisplayName(loc.name).toLowerCase();
+                return displayName.includes(query) || loc.schedule.toLowerCase().includes(query);
+            });
+
+            if (query.trim() !== '') {
+                filtered.forEach(loc => {
+                    const parsed = parseLocationName(loc.name);
+                    groupToggleState[parsed.zone] = true;
+                });
+            }
+
+            renderData(filtered);
+
+            if (window.innerWidth < 768) {
+                document.getElementById('locationList').classList.remove('hidden');
+            }
+        }
+
         /** ==========================================
          * การจัดการ Panel และ Details
          * ========================================== */
@@ -764,26 +799,24 @@
 
             highlightFeature(id);
             const routeColor = routeColorMap[loc.id] || '#f59e0b';
+            const parsed = parseLocationName(loc.name);
 
             let html = `
                 <div class="flex justify-between items-start mb-4 border-b pb-3 border-gray-100">
-                    <h2 class="text-lg font-bold text-gray-800 flex items-start flex-1 pr-2 leading-tight">
-                        ${isRoute ? `<i class="fa-solid fa-route mr-2 mt-1" style="color: ${routeColor}"></i>` : ''}
-                        ${loc.name}
-                    </h2>
+                    <div class="flex-1 pr-2">
+                        <div class="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded inline-block mb-1">${parsed.zone}</div>
+                        <h2 class="text-lg font-bold text-gray-800 flex items-start leading-tight">
+                            ${isRoute ? `<i class="fa-solid fa-route mr-2 mt-1" style="color: ${routeColor}"></i>` : ''}
+                            ${parsed.name}
+                        </h2>
+                    </div>
                     
-                    <div class="flex gap-1.5 shrink-0 items-center">
+                    <div class="flex gap-1.5 shrink-0 items-start">
                         ${isAdminMode ? `
-                            <button onclick="editLocation('${loc.id}')" class="text-amber-600 bg-amber-50 hover:bg-amber-100 w-8 h-8 rounded-lg border border-amber-200 transition shadow-sm flex justify-center items-center" title="แก้ไขข้อมูล">
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
-                            <button onclick="promptDelete('${loc.id}')" class="text-red-600 bg-red-50 hover:bg-red-100 w-8 h-8 rounded-lg border border-red-200 transition shadow-sm flex justify-center items-center" title="ลบข้อมูล">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
+                            <button onclick="editLocation('${loc.id}')" class="text-amber-600 bg-amber-50 hover:bg-amber-100 w-8 h-8 rounded-lg border border-amber-200 transition shadow-sm flex justify-center items-center" title="แก้ไขข้อมูล"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="promptDelete('${loc.id}')" class="text-red-600 bg-red-50 hover:bg-red-100 w-8 h-8 rounded-lg border border-red-200 transition shadow-sm flex justify-center items-center" title="ลบข้อมูล"><i class="fa-solid fa-trash"></i></button>
                         ` : ''}
-                        <button onclick="closePanel()" class="text-gray-500 bg-gray-100 hover:bg-gray-200 w-8 h-8 rounded-full transition shadow-sm flex justify-center items-center ml-1" title="ปิด">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
+                        <button onclick="closePanel()" class="text-gray-500 bg-gray-100 hover:bg-gray-200 w-8 h-8 rounded-full transition shadow-sm flex justify-center items-center ml-1" title="ปิด"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 </div>
                 
@@ -845,7 +878,7 @@
                 }
                 document.querySelectorAll('.list-item').forEach(el => {
                     el.classList.remove('border-amber-400', 'bg-amber-50', 'shadow-md');
-                    el.classList.add('border-gray-200', 'bg-white');
+                    el.classList.add('border-transparent', 'bg-white');
                 });
             }
 
@@ -872,8 +905,7 @@
                 
                 if (currentTime < expireTime) {
                     isAdminMode = true;
-                    const timeLeft = expireTime - currentTime;
-                    startSessionTimer(timeLeft);
+                    startSessionTimer(expireTime - currentTime);
                     updateAdminUI(); 
                 } else {
                     localStorage.removeItem(ADMIN_SESSION_KEY);
@@ -919,46 +951,34 @@
             if (!pwd) return showToast("กรุณาใส่รหัสผ่าน", true);
 
             if (!GAS_URL) {
-                if (pwd === "1234") { 
-                    loginSuccess();
-                    showToast("เข้าสู่โหมดผู้ดูแลระบบ (ข้อมูลจำลอง)");
-                } else {
-                    showToast("รหัสผ่านไม่ถูกต้อง!", true);
-                }
+                if (pwd === "1234") { loginSuccess(); showToast("เข้าสู่โหมดผู้ดูแลระบบ (ข้อมูลจำลอง)"); } 
+                else { showToast("รหัสผ่านไม่ถูกต้อง!", true); }
                 return;
             }
 
-            btn.disabled = true;
-            btnText.innerText = "กำลังตรวจสอบ...";
-            btnIcon.className = "fa-solid fa-spinner fa-spin mr-2 block";
+            btn.disabled = true; btnText.innerText = "กำลังตรวจสอบ..."; btnIcon.className = "fa-solid fa-spinner fa-spin mr-2 block";
 
             try {
                 const response = await fetch(`${GAS_URL}?action=verify&password=${encodeURIComponent(pwd)}`);
                 const result = await response.json();
                 
                 if (result.status === 'success') {
-                    loginSuccess();
-                    showToast("เข้าสู่โหมดผู้ดูแลระบบสำเร็จ");
+                    loginSuccess(); showToast("เข้าสู่โหมดผู้ดูแลระบบสำเร็จ");
                 } else {
                     showToast(result.message || "รหัสผ่านไม่ถูกต้อง!", true);
-                    pwdInput.value = '';
-                    pwdInput.focus();
+                    pwdInput.value = ''; pwdInput.focus();
                 }
             } catch (error) {
                 showToast("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้", true);
             } finally {
-                btn.disabled = false;
-                btnText.innerText = "เข้าสู่ระบบ";
-                btnIcon.className = "hidden";
+                btn.disabled = false; btnText.innerText = "เข้าสู่ระบบ"; btnIcon.className = "hidden";
             }
         }
 
         function loginSuccess() {
             isAdminMode = true;
             const durationMs = SESSION_HOURS * 60 * 60 * 1000;
-            const expireTime = Date.now() + durationMs;
-            localStorage.setItem(ADMIN_SESSION_KEY, expireTime.toString());
-            
+            localStorage.setItem(ADMIN_SESSION_KEY, (Date.now() + durationMs).toString());
             startSessionTimer(durationMs);
             closeModal('passwordModal');
             updateAdminUI();
@@ -982,10 +1002,7 @@
             }
             closePanel();
             renderData();
-            
-            if (!document.getElementById('scheduleModal').classList.contains('hidden')) {
-                renderScheduleTable();
-            }
+            if (!document.getElementById('scheduleModal').classList.contains('hidden')) renderScheduleTable();
         }
 
         function setMode(mode) {
@@ -1041,9 +1058,43 @@
             }
         }
 
+        // ฟังก์ชันช่วยสลับการแสดงผลช่องกรอกชื่อกลุ่มใหม่
+        window.toggleNewZoneInput = function() {
+            const select = document.getElementById('f_zone_select');
+            const input = document.getElementById('f_zone_new');
+            if (select.value === 'NEW_ZONE') {
+                input.classList.remove('hidden');
+                input.focus();
+            } else {
+                input.classList.add('hidden');
+            }
+        };
+
         function renderForm(data, isNew, isRouteMode) {
             const title = isNew ? (isRouteMode ? 'บันทึกเส้นทางใหม่' : 'เพิ่มจุดจัดเก็บใหม่') : 'แก้ไขข้อมูล';
             const icon = isRouteMode ? 'fa-route text-blue-500' : 'fa-pen-to-square text-amber-500';
+            
+            const parsed = parseLocationName(data.name);
+            const currentZone = parsed.zone;
+            const currentName = isNew ? '' : parsed.name;
+            
+            const uniqueZones = new Set(['ทั่วไป']);
+            locationsData.forEach(loc => {
+                const p = parseLocationName(loc.name);
+                if (p.zone) uniqueZones.add(p.zone);
+            });
+
+            let zoneOptions = '';
+            let zoneFound = false;
+            uniqueZones.forEach(z => {
+                const selected = (z === currentZone) ? 'selected' : '';
+                if (selected) zoneFound = true;
+                zoneOptions += `<option value="${z}" ${selected}>${z}</option>`;
+            });
+            if (currentZone && currentZone !== 'ทั่วไป' && !zoneFound) {
+                zoneOptions += `<option value="${currentZone}" selected>${currentZone}</option>`;
+            }
+            zoneOptions += `<option value="NEW_ZONE" class="font-bold text-emerald-600">+ สร้างกลุ่มใหม่...</option>`;
             
             const html = `
                 <div class="flex justify-between items-start mb-4 border-b pb-3 border-gray-100">
@@ -1060,8 +1111,16 @@
                     <input type="hidden" id="f_lat" value='${data.lat}'>
                     <input type="hidden" id="f_lng" value="${data.lng}">
                     
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 mb-2">
+                        <label class="block text-emerald-800 mb-1 text-[11px] font-bold uppercase tracking-wider">กลุ่ม / ชุมชน</label>
+                        <select id="f_zone_select" class="w-full border-b-2 border-gray-300 px-2 py-1 bg-white focus:border-emerald-500 outline-none transition font-medium text-gray-800 rounded shadow-sm" onchange="window.toggleNewZoneInput()">
+                            ${zoneOptions}
+                        </select>
+                        <input type="text" id="f_zone_new" placeholder="พิมพ์ชื่อกลุ่มใหม่ที่ต้องการ..." class="w-full border-b-2 border-emerald-400 px-2 py-2 mt-2 bg-transparent outline-none transition font-medium text-emerald-800 hidden">
+                    </div>
+
                     <div><label class="block text-gray-700 mb-1 text-xs font-medium">ชื่อ${isRouteMode ? 'เส้นทาง' : 'สถานที่'} *</label>
-                    <input type="text" id="f_name" value="${data.name}" required class="w-full border px-3 py-2 rounded-lg bg-gray-50 focus:ring-2 focus:ring-emerald-500 outline-none"></div>
+                    <input type="text" id="f_name" value="${currentName}" placeholder="เช่น ซอย 1" required class="w-full border px-3 py-2 rounded-lg bg-gray-50 focus:ring-2 focus:ring-emerald-500 outline-none"></div>
                     <div><label class="block text-gray-700 mb-1 text-xs font-medium">วันเวลาจัดเก็บ *</label>
                     <input type="text" id="f_schedule" value="${data.schedule}" placeholder="เช่น จันทร์,พุธ 08:00น." required class="w-full border px-3 py-2 rounded-lg bg-gray-50 focus:ring-2 focus:ring-emerald-500 outline-none"></div>
                     <div><label class="block text-gray-700 mb-1 text-xs font-medium">ชื่อผู้รับผิดชอบ</label>
@@ -1085,8 +1144,17 @@
             let finalId = document.getElementById('f_id').value;
             if (!finalId && isRoute) finalId = 'route_' + Date.now();
 
+            let zoneVal = document.getElementById('f_zone_select').value;
+            if (zoneVal === 'NEW_ZONE') {
+                zoneVal = document.getElementById('f_zone_new').value.trim();
+            }
+            if (zoneVal === 'ทั่วไป') zoneVal = ''; 
+
+            const nameVal = document.getElementById('f_name').value.trim();
+            const combinedName = zoneVal ? `${zoneVal}|${nameVal}` : nameVal;
+
             const payload = {
-                action: 'save', id: finalId, name: document.getElementById('f_name').value, lat: document.getElementById('f_lat').value,
+                action: 'save', id: finalId, name: combinedName, lat: document.getElementById('f_lat').value,
                 lng: document.getElementById('f_lng').value, schedule: document.getElementById('f_schedule').value,
                 responsible: document.getElementById('f_responsible').value, details: document.getElementById('f_details').value,
             };
@@ -1129,9 +1197,7 @@
 
         async function executeDelete() {
             if(!itemToDelete) return;
-            closeModal('confirmModal'); 
-            closePanel(); 
-            showToast("กำลังลบข้อมูล...");
+            closeModal('confirmModal'); closePanel(); showToast("กำลังลบข้อมูล...");
             
             if (!GAS_URL) {
                 locationsData = locationsData.filter(l => l.id != itemToDelete);
@@ -1139,76 +1205,101 @@
             }
             
             try {
-                await fetch(GAS_URL, { 
-                    method: 'POST', mode: 'no-cors', 
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'delete', id: itemToDelete }) 
-                });
+                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', id: itemToDelete }) });
                 showToast("ลบข้อมูลสำเร็จ กำลังอัปเดตหน้าจอ...");
-                
                 setTimeout(async () => { await loadData(); }, 1500);
-            } catch(e) { 
-                showToast("ลบไม่สำเร็จ กรุณาลองใหม่", true); 
-            }
+            } catch(e) { showToast("ลบไม่สำเร็จ กรุณาลองใหม่", true); }
             itemToDelete = null;
         }
 
-        function handleSearch() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = locationsData.filter(loc => loc.name.toLowerCase().includes(query) || loc.schedule.toLowerCase().includes(query));
-            renderData(filtered);
+        /** ==========================================
+         * ระบบจัดการเปลี่ยนชื่อกลุ่มรวดเดียว (Rename Zone)
+         * ========================================== */
+        window.promptRenameZone = function(oldZone) {
+            document.getElementById('oldZoneNameDisplay').innerText = oldZone;
+            document.getElementById('oldZoneInput').value = oldZone;
+            document.getElementById('newZoneInput').value = oldZone;
+            document.getElementById('renameZoneModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('newZoneInput').focus(), 100);
+        };
 
-            if (window.innerWidth < 768) {
-                document.getElementById('locationList').classList.remove('hidden');
-            }
-        }
-
-        // ระบบระบุตำแหน่งผู้ใช้และวาดรัศมี 100 เมตร
-        function locateUser() {
-            if (!navigator.geolocation) {
-                showToast("เบราว์เซอร์ของคุณไม่รองรับการระบุตำแหน่ง", true);
+        window.executeRenameZone = async function(event) {
+            event.preventDefault();
+            const oldZone = document.getElementById('oldZoneInput').value;
+            const newZone = document.getElementById('newZoneInput').value.trim();
+            const btn = document.getElementById('btnRenameZone');
+            
+            if (!newZone || newZone === oldZone) {
+                closeModal('renameZoneModal');
                 return;
             }
-            
+
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            if (!GAS_URL) {
+                setTimeout(() => {
+                    locationsData.forEach(loc => {
+                        const parsed = parseLocationName(loc.name);
+                        if (parsed.zone === oldZone) {
+                            loc.name = (newZone === 'ทั่วไป' || newZone === '') ? parsed.name : `${newZone}|${parsed.name}`;
+                        }
+                    });
+                    groupToggleState[newZone] = true;
+                    if(newZone !== oldZone) delete groupToggleState[oldZone];
+                    
+                    renderData();
+                    closeModal('renameZoneModal');
+                    showToast("เปลี่ยนชื่อกลุ่มจำลองสำเร็จ");
+                    btn.innerHTML = 'บันทึก'; btn.disabled = false;
+                }, 800);
+                return;
+            }
+
+            try {
+                await fetch(GAS_URL, { 
+                    method: 'POST', mode: 'no-cors', cache: 'no-cache', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ action: 'rename_zone', oldZone: oldZone, newZone: newZone }) 
+                });
+                showToast("เปลี่ยนชื่อกลุ่มสำเร็จ กำลังอัปเดต...");
+                
+                groupToggleState[newZone] = true;
+                if(newZone !== oldZone) delete groupToggleState[oldZone];
+
+                setTimeout(async () => { 
+                    await loadData(); 
+                    closeModal('renameZoneModal');
+                    btn.innerHTML = 'บันทึก'; btn.disabled = false;
+                }, 1500);
+            } catch (error) {
+                showToast("เกิดข้อผิดพลาด", true); 
+                btn.innerHTML = 'บันทึก'; btn.disabled = false;
+            }
+        };
+
+        // ระบบระบุตำแหน่งผู้ใช้
+        function locateUser() {
+            if (!navigator.geolocation) { showToast("เบราว์เซอร์ของคุณไม่รองรับการระบุตำแหน่ง", true); return; }
             showToast("กำลังค้นหาตำแหน่งของคุณ...");
             hideMobileList(); 
-            
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-                    const radius = 100; 
+                    const lat = position.coords.latitude; const lng = position.coords.longitude; const radius = 100; 
+                    if (userMarker) map.removeLayer(userMarker); if (userCircle) map.removeLayer(userCircle);
 
-                    if (userMarker) map.removeLayer(userMarker);
-                    if (userCircle) map.removeLayer(userCircle);
-
-                    const userIcon = L.divIcon({
-                        className: 'custom-user-icon',
-                        html: `<div class="w-4 h-4 bg-blue-500 border-2 border-white rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)] animate-pulse"></div>`,
-                        iconSize: [16, 16],
-                        iconAnchor: [8, 8]
-                    });
-
+                    const userIcon = L.divIcon({ className: 'custom-user-icon', html: `<div class="w-4 h-4 bg-blue-500 border-2 border-white rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)] animate-pulse"></div>`, iconSize: [16, 16], iconAnchor: [8, 8] });
                     userMarker = L.marker([lat, lng], {icon: userIcon, zIndexOffset: 1000}).addTo(map);
                     userMarker.bindPopup('<div class="text-sm font-medium text-blue-600">ตำแหน่งปัจจุบันของคุณ</div>');
 
-                    userCircle = L.circle([lat, lng], {
-                        color: '#3b82f6',
-                        fillColor: '#3b82f6',
-                        fillOpacity: 0.15,
-                        weight: 2,
-                        radius: radius
-                    }).addTo(map);
-
-                    map.flyTo([lat, lng], 16);
-                    showToast("ระบุตำแหน่งสำเร็จ");
+                    userCircle = L.circle([lat, lng], { color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.15, weight: 2, radius: radius }).addTo(map);
+                    map.flyTo([lat, lng], 16); showToast("ระบุตำแหน่งสำเร็จ");
                 },
                 (error) => {
                     let msg = "ไม่สามารถระบุตำแหน่งได้";
                     if(error.code === 1) msg = "กรุณาอนุญาตการเข้าถึงตำแหน่งที่ตั้ง (Location Permission) ในเบราว์เซอร์ของคุณ";
                     showToast(msg, true);
-                },
-                { enableHighAccuracy: true }
+                }, { enableHighAccuracy: true }
             );
         }
 
