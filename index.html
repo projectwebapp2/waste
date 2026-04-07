@@ -659,6 +659,11 @@
                 if (index < dataToRender.length - 1) html += `<span class="text-emerald-600 text-[10px] align-middle">●</span>`;
             });
             bannerContent.innerHTML = html;
+            
+            // เพิ่มการคำนวณระยะเวลา (Speed) อัตโนมัติ ป้องกันข้อมูลเยอะแล้ววิ่งเร็ว
+            // กำหนดความเร็วให้อ่านสบายๆ ที่ประมาณ 12 วินาที ต่อ 1 รายการ (ขั้นต่ำ 35 วินาที)
+            const animationTime = Math.max(35, dataToRender.length * 12);
+            bannerContent.style.animationDuration = `${animationTime}s`;			
         }
 
         function highlightAndShowDetails(id) {
