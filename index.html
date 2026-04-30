@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">	
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>แผนที่การจัดเก็บขยะในชุมชน</title>
     
@@ -147,13 +147,10 @@
         <div class="relative w-full max-w-lg mx-4">
             <button onclick="closeModal('dailyPopupModal')" class="absolute -top-12 right-0 text-white hover:text-gray-300 text-4xl z-10 transition">&times;</button>
             <div class="bg-transparent rounded-xl overflow-hidden relative shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-                <!-- Carousel Container -->
-                <div id="popupCarousel" class="flex transition-transform duration-500 ease-in-out items-center">
+                <!-- Carousel Container (เพิ่มการตรวจจับการปัดนิ้ว ontouchstart, ontouchend และเมาส์) -->
+                <div id="popupCarousel" class="flex transition-transform duration-500 ease-in-out items-center cursor-grab active:cursor-grabbing" ontouchstart="handleTouchStart(event)" ontouchend="handleTouchEnd(event)" onmousedown="handleMouseDown(event)" onmouseup="handleMouseUp(event)">
                     <!-- Images will be injected here -->
                 </div>
-                <!-- Navigation Arrows -->
-                <button id="popupPrevBtn" onclick="movePopup(-1)" class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 text-white w-10 h-10 rounded-full hover:bg-black/70 flex items-center justify-center transition hidden backdrop-blur-md border border-white/20"><i class="fa-solid fa-chevron-left"></i></button>
-                <button id="popupNextBtn" onclick="movePopup(1)" class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 text-white w-10 h-10 rounded-full hover:bg-black/70 flex items-center justify-center transition hidden backdrop-blur-md border border-white/20"><i class="fa-solid fa-chevron-right"></i></button>
                 <!-- Indicators -->
                 <div id="popupIndicators" class="absolute bottom-3 left-0 right-0 flex justify-center gap-2 z-10"></div>
             </div>
@@ -304,7 +301,7 @@
 
     <!-- Javascript หลักของระบบ -->
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbxjKS-K3tYte5tpFPKsgdtLpHbx1jqkvdtRFvYxxjiB57rx8ZsIOCZnPnLixPYJ2oruPg/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxjKS-K3tYte5tpFPKsgdtLpHbx1jqkvdtRFvYxxjiB57rx8ZsIOCZnPnLixPYJ2oruPg/exec"; 
 
         const ADMIN_SESSION_KEY = 'garbage_map_admin_session';
         const SESSION_HOURS = 3; 
@@ -570,8 +567,6 @@
                 indicators.innerHTML += `<button onclick="goToPopup(${index})" class="w-2.5 h-2.5 rounded-full transition-all shadow-md ${index === 0 ? 'bg-white w-5' : 'bg-white/50 hover:bg-white/80'}" id="dot-${index}"></button>`;
             });
 
-            document.getElementById('popupPrevBtn').classList.toggle('hidden', todayPopups.length <= 1);
-            document.getElementById('popupNextBtn').classList.toggle('hidden', todayPopups.length <= 1);
             updatePopupTransform();
         }
 
@@ -600,6 +595,23 @@
                     }
                 }
             });
+        }
+
+        // ระบบปัดซ้าย-ขวาบนมือถือ (Swipe) และเมาส์ (Drag)
+        let dragStartX = 0;
+        let dragEndX = 0;
+
+        function handleTouchStart(e) { dragStartX = e.changedTouches[0].screenX; }
+        function handleTouchEnd(e) { dragEndX = e.changedTouches[0].screenX; handleSwipe(); }
+        
+        function handleMouseDown(e) { dragStartX = e.screenX; }
+        function handleMouseUp(e) { dragEndX = e.screenX; handleSwipe(); }
+
+        function handleSwipe() {
+            if (todayPopups.length <= 1) return;
+            const threshold = 40; // ระยะการปัดขั้นต่ำ (พิกเซล)
+            if (dragEndX < dragStartX - threshold) movePopup(1);  // ปัดซ้าย -> เลื่อนภาพถัดไป
+            if (dragEndX > dragStartX + threshold) movePopup(-1); // ปัดขวา -> เลื่อนภาพก่อนหน้า
         }
 
         // --- ระบบจัดการป๊อปอัพ (Admin) ---
