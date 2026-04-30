@@ -38,17 +38,18 @@
 
         .leaflet-interactive { cursor: pointer; }
 
-        /* แอนิเมชันสำหรับรายการที่ถูกลาก (Drag & Drop) */
         .sortable-ghost { opacity: 0.4; background-color: #d1fae5 !important; }
         .sortable-drag { cursor: grabbing !important; }
 
-        /* CSS สำหรับแบนเนอร์เลื่อน */
         @keyframes marquee { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } }
         .animate-marquee { display: inline-block; white-space: nowrap; animation: marquee 35s linear infinite; will-change: transform; }
         .animate-marquee:hover { animation-play-state: paused; }
         
-        /* สไตล์ปุ่ม Layer Control ของ Leaflet ให้สวยงามขึ้น */
         .leaflet-control-layers { border: none !important; border-radius: 8px !important; box-shadow: 0 2px 10px rgba(0,0,0,0.2) !important; font-family: 'Kanit', sans-serif; }
+        
+        /* ซ่อน Scrollbar ในสไลด์ป๊อปอัพ */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-gray-50 h-screen overflow-hidden flex flex-col relative">
@@ -60,7 +61,7 @@
         </div>
     </div>
 
-    <!-- Wrapper หลักสำหรับ Sidebar และ แผนที่ -->
+    <!-- Wrapper หลัก -->
     <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative w-full">
 
         <!-- Header / Sidebar -->
@@ -69,8 +70,8 @@
             <!-- หัวเว็บ -->
             <div class="p-4 bg-emerald-600 text-white flex justify-between items-center shrink-0">
                 <div class="truncate pr-2">
-                    <h1 class="text-lg md:text-xl font-semibold truncate"><i class="fa-solid fa-truck-ramp-box mr-2"></i>การจัดเก็บขยะ</h1>
-                    <p class="text-emerald-100 text-[10px] md:text-sm truncate">แผนที่เส้นทางและตารางเวลาจัดเก็บ</p>
+                    <h1 class="text-lg md:text-xl font-semibold truncate"><i class="fa-solid fa-truck-ramp-box mr-2"></i>ระบบจัดเก็บขยะ</h1>
+                    <p class="text-emerald-100 text-[10px] md:text-sm truncate">แผนที่เส้นทางและตารางเวลา</p>
                 </div>
                 <div class="flex gap-1.5 md:gap-2 shrink-0">
                     <button id="btnTutorial" onclick="startTutorial(true)" class="bg-emerald-700 hover:bg-emerald-800 w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full text-xs transition shadow-inner" title="คำแนะนำการใช้งาน">
@@ -96,18 +97,18 @@
                 </div>
             </div>
 
-            <!-- คอนเทนเนอร์รายการสถานที่ (รองรับการจัดกลุ่มและลากสลับ) -->
+            <!-- คอนเทนเนอร์รายการสถานที่ -->
             <div class="absolute md:static top-full left-0 w-full bg-white md:bg-gray-50 shadow-2xl md:shadow-none z-[1000] md:z-auto max-h-[55vh] md:max-h-none overflow-y-auto hidden md:block p-2 flex-1 rounded-b-xl border-b border-gray-200 md:border-none md:rounded-none" id="locationList">
                 <div class="text-center text-gray-500 py-4"><i class="fa-solid fa-spinner fa-spin mr-2"></i>กำลังโหลดข้อมูล...</div>
             </div>
             
-            <!-- แถบสถานะโหมด Admin (ซ่อน/แสดงเมื่อล็อกอิน) -->
+            <!-- แถบสถานะโหมด Admin -->
             <div id="adminBanner" class="hidden bg-amber-50 border-t border-amber-200 p-3 flex flex-col gap-2 shrink-0">
                 <div class="text-amber-800 text-sm font-medium flex items-center justify-between">
-                    <span><i class="fa-solid fa-wrench mr-1"></i> โหมดผู้ดูแล <span class="text-xs font-normal text-amber-600">(แตะ <i class="fa-solid fa-grip-vertical mx-1"></i> เพื่อลากจัดเรียง)</span></span>
+                    <span><i class="fa-solid fa-wrench mr-1"></i> โหมดผู้ดูแล <span class="text-xs font-normal text-amber-600">(แตะ <i class="fa-solid fa-grip-vertical mx-1"></i> เพื่อลาก)</span></span>
                     <span id="drawingStatus" class="text-xs bg-amber-200 px-2 py-0.5 rounded-full hidden animate-pulse">กำลังวาดเส้น...</span>
                 </div>
-                <div class="grid grid-cols-2 gap-2 text-xs">
+                <div class="grid grid-cols-2 gap-2 text-xs mb-1">
                     <button onclick="setMode('point')" id="btnModePoint" class="py-2 border border-amber-500 bg-amber-500 text-white rounded hover:bg-amber-600 transition shadow-inner">
                         <i class="fa-solid fa-location-dot"></i> เพิ่มจุด
                     </button>
@@ -115,7 +116,10 @@
                         <i class="fa-solid fa-route"></i> วาดเส้นทาง
                     </button>
                 </div>
-                <button id="btnFinishRoute" onclick="showRouteForm()" class="hidden py-2 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition text-sm shadow">
+                <button onclick="openManagePopups()" class="w-full py-2 bg-white border border-purple-400 text-purple-600 rounded hover:bg-purple-50 transition text-xs font-medium shadow-sm">
+                    <i class="fa-regular fa-images"></i> จัดการป๊อปอัพหน้าแรก
+                </button>
+                <button id="btnFinishRoute" onclick="showRouteForm()" class="hidden py-2 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition text-sm shadow mt-1">
                     <i class="fa-solid fa-check"></i> บันทึกเส้นทางนี้
                 </button>
             </div>
@@ -124,13 +128,9 @@
         <!-- แผนที่หลัก -->
         <div class="flex-1 relative h-full">
             <div id="map" class="w-full h-full"></div>
-            
-            <!-- ปุ่มระบุตำแหน่งของฉัน -->
             <button id="btnLocateUser" onclick="locateUser()" class="absolute bottom-[90px] right-[10px] z-[400] bg-white border border-gray-300 shadow-[0_2px_8px_rgba(0,0,0,0.2)] rounded-md text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition w-[36px] h-[36px] flex items-center justify-center group" title="ตำแหน่งของฉัน">
                 <i class="fa-solid fa-location-crosshairs text-lg group-hover:scale-110 transition-transform"></i>
             </button>
-
-            <!-- Panel แสดงรายละเอียด (ลอยทับแผนที่) -->
             <div id="infoPanel" class="info-panel fixed md:absolute bottom-0 md:bottom-auto md:top-4 md:right-4 w-full md:w-80 bg-white rounded-t-2xl md:rounded-xl shadow-2xl transform translate-y-full md:translate-y-0 md:opacity-0 md:pointer-events-none transition-all duration-300 max-h-[85vh] overflow-y-auto flex flex-col z-[500]">
                 <div class="w-full flex justify-center pt-3 pb-1 md:hidden" onclick="closePanel()"><div class="w-12 h-1.5 bg-gray-300 rounded-full"></div></div>
                 <div class="p-5 flex-1" id="panelContent"></div>
@@ -139,28 +139,91 @@
 
     </div>
 
-    <!-- Modals -->
+    <!-- ================= MODALS ================= -->
     
-    <!-- 1. Password Modal -->
-    <div id="passwordModal" class="fixed inset-0 bg-black/60 hidden z-[1000] flex items-center justify-center backdrop-blur-sm transition-opacity">
-        <div class="bg-white p-6 rounded-xl w-80 shadow-2xl transform scale-95 transition-transform">
-            <h3 class="text-lg font-bold mb-2 text-gray-800"><i class="fa-solid fa-lock text-emerald-600 mr-2"></i>ผู้ดูแลระบบ</h3>
-            <p class="text-xs text-gray-500 mb-4">ใส่รหัสผ่านเพื่อเข้าสู่ระบบ</p>
-            <input type="password" id="adminPassword" class="w-full border p-2 rounded-lg mb-4 focus:ring-2 focus:ring-emerald-500 outline-none bg-gray-50" placeholder="รหัสผ่าน">
-            <div class="flex justify-end gap-2">
-                <button onclick="closeModal('passwordModal')" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition">ยกเลิก</button>
-                <button id="btnLogin" onclick="verifyPassword()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 shadow flex items-center justify-center min-w-[100px] transition">
-                    <i id="btnLoginIcon" class="hidden"></i> <span id="btnLoginText">เข้าสู่ระบบ</span>
-                </button>
+    <!-- 0. Daily Popups (ระบบแสดงป๊อปอัพหน้าแรกสำหรับผู้ใช้) -->
+    <div id="dailyPopupModal" class="fixed inset-0 bg-black/80 hidden z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="relative w-full max-w-lg mx-4">
+            <button onclick="closeModal('dailyPopupModal')" class="absolute -top-12 right-0 text-white hover:text-gray-300 text-4xl z-10 transition">&times;</button>
+            <div class="bg-transparent rounded-xl overflow-hidden relative shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+                <!-- Carousel Container -->
+                <div id="popupCarousel" class="flex transition-transform duration-500 ease-in-out items-center">
+                    <!-- Images will be injected here -->
+                </div>
+                <!-- Navigation Arrows -->
+                <button id="popupPrevBtn" onclick="movePopup(-1)" class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 text-white w-10 h-10 rounded-full hover:bg-black/70 flex items-center justify-center transition hidden backdrop-blur-md border border-white/20"><i class="fa-solid fa-chevron-left"></i></button>
+                <button id="popupNextBtn" onclick="movePopup(1)" class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 text-white w-10 h-10 rounded-full hover:bg-black/70 flex items-center justify-center transition hidden backdrop-blur-md border border-white/20"><i class="fa-solid fa-chevron-right"></i></button>
+                <!-- Indicators -->
+                <div id="popupIndicators" class="absolute bottom-3 left-0 right-0 flex justify-center gap-2 z-10"></div>
             </div>
         </div>
     </div>
 
-    <!-- 2. Confirm Delete Modal -->
+    <!-- Admin Manage Popups Modal -->
+    <div id="managePopupsModal" class="fixed inset-0 bg-black/60 hidden z-[1000] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+            <div class="p-4 border-b flex justify-between items-center bg-purple-50 shrink-0">
+                <h3 class="text-lg font-bold text-purple-800"><i class="fa-regular fa-images mr-2"></i>จัดการป๊อปอัพหน้าแรก</h3>
+                <button onclick="closeModal('managePopupsModal')" class="text-gray-500 hover:bg-gray-200 w-8 h-8 rounded-full transition flex justify-center items-center"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="overflow-y-auto flex-1 p-4 bg-gray-50">
+                <button onclick="openPopupForm()" class="w-full mb-4 py-3 border-2 border-dashed border-purple-300 text-purple-600 bg-white rounded-lg hover:bg-purple-50 transition font-medium">
+                    <i class="fa-solid fa-plus mr-1"></i> เพิ่มป๊อปอัพใหม่
+                </button>
+                <div id="popupsListContainer" class="space-y-3">
+                    <!-- Popups list injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Edit Popup Form Modal -->
+    <div id="popupFormModal" class="fixed inset-0 bg-black/70 hidden z-[1100] flex items-center justify-center backdrop-blur-md p-4">
+        <div class="bg-white rounded-xl w-full max-w-lg shadow-2xl overflow-hidden">
+            <div class="p-4 border-b bg-purple-600 text-white flex justify-between items-center">
+                <h3 class="font-bold"><i class="fa-solid fa-pen-to-square mr-2"></i>ตั้งค่าป๊อปอัพ</h3>
+                <button onclick="closeModal('popupFormModal')" class="text-white hover:text-gray-200 w-8 h-8 flex justify-center items-center"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="savePopupData(event)" class="p-5 space-y-4 text-sm">
+                <input type="hidden" id="pop_id">
+                <div>
+                    <label class="block text-gray-700 font-bold mb-1">URL รูปภาพ (ลิงก์ภาพ) *</label>
+                    <input type="url" id="pop_img" required placeholder="https://example.com/image.png" class="w-full border p-2 rounded-lg bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-1">วันที่ต้องการให้แสดง *</label>
+                    <p class="text-[11px] text-gray-500 mb-2">สามารถระบุได้หลายวัน คั่นด้วยลูกน้ำ (,) เช่น 2026-04-30, 2026-05-01</p>
+                    <div class="flex gap-2 mb-2">
+                        <input type="date" id="pop_date_picker" class="border p-2 rounded-lg flex-1 bg-gray-50 outline-none">
+                        <button type="button" onclick="appendDateToPopup()" class="bg-purple-100 text-purple-700 border border-purple-300 px-3 rounded-lg hover:bg-purple-200 transition whitespace-nowrap"><i class="fa-solid fa-plus"></i> เพิ่มวัน</button>
+                    </div>
+                    <textarea id="pop_dates" rows="2" required class="w-full border p-2 rounded-lg bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none" placeholder="YYYY-MM-DD"></textarea>
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('popupFormModal')" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition">ยกเลิก</button>
+                    <button type="submit" id="btnSavePopup" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 shadow transition flex items-center min-w-[100px] justify-center"><i class="fa-solid fa-save mr-2"></i> บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Other Existing Modals (Password, Delete, Schedule, Rename Zone, Tutorial) -->
+    <div id="passwordModal" class="fixed inset-0 bg-black/60 hidden z-[1000] flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="bg-white p-6 rounded-xl w-80 shadow-2xl transform scale-95 transition-transform">
+            <h3 class="text-lg font-bold mb-2 text-gray-800"><i class="fa-solid fa-lock text-emerald-600 mr-2"></i>ผู้ดูแลระบบ</h3>
+            <p class="text-xs text-gray-500 mb-4">ระบบตรวจสอบรหัสผ่านเชื่อมต่อกับ Google Sheet โดยตรง</p>
+            <input type="password" id="adminPassword" class="w-full border p-2 rounded-lg mb-4 focus:ring-2 focus:ring-emerald-500 outline-none bg-gray-50" placeholder="รหัสผ่าน">
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal('passwordModal')" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition">ยกเลิก</button>
+                <button id="btnLogin" onclick="verifyPassword()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 shadow flex items-center justify-center min-w-[100px] transition"><i id="btnLoginIcon" class="hidden"></i> <span id="btnLoginText">เข้าสู่ระบบ</span></button>
+            </div>
+        </div>
+    </div>
+
     <div id="confirmModal" class="fixed inset-0 bg-black/60 hidden z-[1000] flex items-center justify-center backdrop-blur-sm">
         <div class="bg-white p-6 rounded-xl w-80 shadow-2xl">
             <h3 class="text-lg font-bold mb-2 text-red-600"><i class="fa-solid fa-triangle-exclamation mr-2"></i>ยืนยันการลบ</h3>
-            <p class="text-sm text-gray-600 mb-6">คุณต้องการลบข้อมูลนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+            <p class="text-sm text-gray-600 mb-6" id="confirmText">คุณต้องการลบข้อมูลนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้</p>
             <div class="flex justify-end gap-2">
                 <button onclick="closeModal('confirmModal')" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition">ยกเลิก</button>
                 <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 shadow transition">ลบข้อมูล</button>
@@ -168,14 +231,11 @@
         </div>
     </div>
 
-    <!-- 3. Schedule Table Modal -->
     <div id="scheduleModal" class="fixed inset-0 bg-black/60 hidden z-[1000] flex items-center justify-center backdrop-blur-sm transition-opacity p-4">
         <div class="bg-white rounded-xl w-full max-w-5xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden">
             <div class="p-4 border-b flex justify-between items-center bg-emerald-50 shrink-0">
                 <h3 class="text-lg font-bold text-emerald-800"><i class="fa-solid fa-calendar-days mr-2"></i>ตารางเวลาการจัดเก็บขยะ</h3>
-                <button onclick="closeModal('scheduleModal')" class="text-gray-500 hover:bg-gray-200 w-8 h-8 rounded-full transition flex justify-center items-center">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <button onclick="closeModal('scheduleModal')" class="text-gray-500 hover:bg-gray-200 w-8 h-8 rounded-full transition flex justify-center items-center"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="overflow-x-auto overflow-y-auto flex-1 p-0 relative">
                 <table class="w-full text-left border-collapse text-sm min-w-[600px]">
@@ -193,14 +253,26 @@
             </div>
             <div class="p-4 border-t bg-gray-50 flex justify-between items-center shrink-0">
                 <div class="text-xs text-gray-500 font-medium" id="scheduleCount">รวม 0 รายการ</div>
-                <button class="hidden px-4 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 shadow admin-col transition" onclick="closeModal('scheduleModal'); showToast('คลิกบนแผนที่เพื่อเพิ่มจุดจัดเก็บ หรือสลับไปวาดเส้นทาง', false);">
-                    <i class="fa-solid fa-location-dot mr-1"></i> เพิ่มข้อมูลบนแผนที่
-                </button>
+                <button class="hidden px-4 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 shadow admin-col transition" onclick="closeModal('scheduleModal'); showToast('คลิกบนแผนที่เพื่อเพิ่มจุดจัดเก็บ หรือสลับไปวาดเส้นทาง', false);"><i class="fa-solid fa-location-dot mr-1"></i> เพิ่มข้อมูลบนแผนที่</button>
             </div>
         </div>
     </div>
 
-    <!-- 4. Tutorial Overlay & Tooltip -->
+    <div id="renameZoneModal" class="fixed inset-0 bg-black/60 hidden z-[1000] flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="bg-white p-6 rounded-xl w-80 shadow-2xl">
+            <h3 class="text-lg font-bold mb-2 text-gray-800"><i class="fa-solid fa-pen-to-square text-amber-500 mr-2"></i>เปลี่ยนชื่อกลุ่ม/ชุมชน</h3>
+            <p class="text-xs text-gray-500 mb-4">ชื่อกลุ่มเดิม: <span id="oldZoneNameDisplay" class="font-bold text-emerald-700 text-sm"></span></p>
+            <form onsubmit="executeRenameZone(event)">
+                <input type="hidden" id="oldZoneInput">
+                <input type="text" id="newZoneInput" required class="w-full border p-2 rounded-lg mb-4 focus:ring-2 focus:ring-emerald-500 outline-none bg-gray-50" placeholder="พิมพ์ชื่อกลุ่มใหม่...">
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('renameZoneModal')" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition">ยกเลิก</button>
+                    <button type="submit" id="btnRenameZone" class="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 shadow transition flex items-center justify-center min-w-[80px]">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="tutorialOverlay" class="fixed inset-0 z-[9998] hidden pointer-events-none overflow-hidden">
         <div id="tutorialHighlight" class="absolute border-4 border-emerald-400 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.65)] transition-all duration-500 ease-in-out"></div>
     </div>
@@ -218,24 +290,8 @@
         </div>
     </div>
 
-    <!-- 5. Rename Zone Modal (เปลี่ยนชื่อกลุ่ม) -->
-    <div id="renameZoneModal" class="fixed inset-0 bg-black/60 hidden z-[1000] flex items-center justify-center backdrop-blur-sm transition-opacity">
-        <div class="bg-white p-6 rounded-xl w-80 shadow-2xl">
-            <h3 class="text-lg font-bold mb-2 text-gray-800"><i class="fa-solid fa-pen-to-square text-amber-500 mr-2"></i>เปลี่ยนชื่อกลุ่ม/ชุมชน</h3>
-            <p class="text-xs text-gray-500 mb-4">ชื่อกลุ่มเดิม: <span id="oldZoneNameDisplay" class="font-bold text-emerald-700 text-sm"></span></p>
-            <form onsubmit="executeRenameZone(event)">
-                <input type="hidden" id="oldZoneInput">
-                <input type="text" id="newZoneInput" required class="w-full border p-2 rounded-lg mb-4 focus:ring-2 focus:ring-emerald-500 outline-none bg-gray-50" placeholder="พิมพ์ชื่อกลุ่มใหม่...">
-                <div class="flex justify-end gap-2">
-                    <button type="button" onclick="closeModal('renameZoneModal')" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition">ยกเลิก</button>
-                    <button type="submit" id="btnRenameZone" class="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 shadow transition flex items-center justify-center min-w-[80px]">บันทึก</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- Toast แจ้งเตือน -->
-    <div id="toast" class="fixed top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded shadow-lg transform transition-transform duration-300 translate-y-[-150%] z-[10000] flex items-center gap-2">
+    <div id="toast" class="fixed top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded shadow-lg transform transition-transform duration-300 translate-y-[-150%] z-[20000] flex items-center gap-2">
         <span id="toastMsg"></span>
     </div>
 
@@ -249,6 +305,7 @@
 
         let map, markersGroup, routesGroup;
         let locationsData = [];
+        let popupsData = []; // เก็บข้อมูลป๊อปอัพ
         let isAdminMode = false;
         
         let layerMap = {}; 
@@ -267,6 +324,7 @@
         let routePoints = [];
         let tempPolyline = null;
         let itemToDelete = null;
+        let isDeletingPopup = false;
         
         // ข้อมูลจำลอง (Mock Data)
         const mockData = [
@@ -276,11 +334,42 @@
             { id: "route_1", name: "ชุมชนบางคอแหลม|เส้นทางรถขยะสาย A", lat: "[[13.7550,100.5010],[13.7563,100.5018],[13.7580,100.5040]]", lng: "", schedule: "ทุกวัน (07:00)", responsible: "ทีมงานเทศบาล", details: "รถเก็บขยะคันสีเขียว ทะเบียน 1234" }
         ];
 
+        // Helper สำหรับหาวันที่ปัจจุบันของประเทศไทย (Format: YYYY-MM-DD)
+        function getThailandDateString() {
+            const d = new Date();
+            // แปลงโซนเวลาให้เป็นเวลาของกรุงเทพฯ
+            const bkkTime = new Date(d.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
+            return bkkTime.getFullYear() + '-' + String(bkkTime.getMonth() + 1).padStart(2, '0') + '-' + String(bkkTime.getDate()).padStart(2, '0');
+        }
+
+        // Helper แก้ปัญหา Google Sheet แปลง Date เป็น ISO String กลับมาเป็น YYYY-MM-DD
+        function normalizeDates(rawDates) {
+            if (!rawDates) return '';
+            return rawDates.split(',').map(d => {
+                let str = d.trim();
+                // ถ้ามี T และ Z แสดงว่าเป็น Date Object จาก Google Sheets
+                if (str.includes('T') && str.includes('Z')) {
+                    try {
+                        const dateObj = new Date(str);
+                        const bkkTime = new Date(dateObj.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
+                        return bkkTime.getFullYear() + '-' + String(bkkTime.getMonth() + 1).padStart(2, '0') + '-' + String(bkkTime.getDate()).padStart(2, '0');
+                    } catch(e) { return str; }
+                }
+                return str;
+            }).join(', ');
+        }
+
+        // สร้าง Mock Popup ให้แสดงผลในวันนี้เสมอ (เพื่อการทดสอบ)
+        const todayStr = getThailandDateString();
+        const mockPopups = [
+            { id: 'p1', imageUrl: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&q=80&w=800&h=500', dates: todayStr },
+            { id: 'p2', imageUrl: 'https://images.unsplash.com/photo-1604187351574-c75ca79f5807?auto=format&fit=crop&q=80&w=800&h=500', dates: todayStr + ', 2026-12-31' }
+        ];
+
         document.addEventListener('DOMContentLoaded', () => {
             initMap();             
             checkAdminSession();   
             loadData();
-            setTimeout(() => { startTutorial(false); }, 1000);
         });
 
         function hideMobileList() {
@@ -375,6 +464,8 @@
             document.getElementById('tutorialOverlay').classList.add('hidden');
             document.getElementById('tutorialTooltip').classList.add('hidden');
             localStorage.setItem('garbage_map_tutorial_seen', 'true');
+            // หลังจากจบบทสอน ให้เช็คว่ามีป๊อปอัพวันนี้ไหม
+            checkAndShowDailyPopups();
         }
 
         // ระบบเริ่มต้นแผนที่
@@ -405,18 +496,206 @@
         async function loadData() {
             renderListUI(null, true); 
             if (!GAS_URL) {
-                setTimeout(() => { locationsData = mockData; renderData(); }, 800);
+                setTimeout(() => { 
+                    locationsData = mockData; 
+                    popupsData = mockPopups;
+                    renderData(); 
+                    if (localStorage.getItem('garbage_map_tutorial_seen')) {
+                        checkAndShowDailyPopups(); // เรียกตอนโหลดเสร็จ ถ้าเคยดูบทสอนแล้ว
+                    } else {
+                        setTimeout(() => { startTutorial(false); }, 500); // เรียกบทสอนถ้ายังไม่เคยดู
+                    }
+                }, 800);
                 return;
             }
             try {
                 const response = await fetch(GAS_URL);
                 const result = await response.json();
-                if (result.status === 'success') { locationsData = result.data; renderData(); } 
+                if (result.status === 'success') { 
+                    locationsData = result.data; 
+                    popupsData = result.popups || [];
+                    renderData(); 
+                    if (localStorage.getItem('garbage_map_tutorial_seen')) {
+                        checkAndShowDailyPopups();
+                    } else {
+                        setTimeout(() => { startTutorial(false); }, 500);
+                    }
+                } 
                 else { showToast("ข้อผิดพลาด: " + result.message, true); renderListUI([]); updateBanner([]); }
             } catch (error) {
                 showToast("ไม่สามารถเชื่อมต่อฐานข้อมูลได้", true); renderListUI([]); updateBanner([]);
             }
         }
+
+        // ======================= ระบบป๊อปอัพหน้าแรก (User & Admin) =======================
+        
+        let todayPopups = [];
+        let currentPopupIndex = 0;
+
+        function checkAndShowDailyPopups() {
+            const today = getThailandDateString(); // Format: YYYY-MM-DD (ใช้เวลาประเทศไทย)
+            const seenKey = 'garbage_map_popup_seen_' + today;
+            
+            // เช็คว่าวันนี้เคยดูหรือยัง (จะเด้งแค่วันละ 1 ครั้งต่อเครื่อง)
+            if (localStorage.getItem(seenKey)) return;
+
+            // กรองหาป๊อปอัพที่มีวันที่ตรงกับวันนี้
+            todayPopups = popupsData.filter(p => {
+                if(!p.dates) return false;
+                const normalizedDates = normalizeDates(p.dates);
+                const dateList = normalizedDates.split(',').map(d => d.trim());
+                return dateList.includes(today);
+            });
+
+            if (todayPopups.length > 0) {
+                renderDailyPopupCarousel();
+                document.getElementById('dailyPopupModal').classList.remove('hidden');
+                localStorage.setItem(seenKey, 'true');
+            }
+        }
+
+        function renderDailyPopupCarousel() {
+            const carousel = document.getElementById('popupCarousel');
+            const indicators = document.getElementById('popupIndicators');
+            carousel.innerHTML = '';
+            indicators.innerHTML = '';
+            currentPopupIndex = 0;
+
+            todayPopups.forEach((p, index) => {
+                carousel.innerHTML += `<div class="w-full flex-shrink-0 flex justify-center items-center h-full"><img src="${p.imageUrl}" class="max-w-full max-h-[80vh] object-contain rounded" alt="Popup Announcement" onerror="this.src='https://via.placeholder.com/600x400?text=Image+Not+Found'"></div>`;
+                indicators.innerHTML += `<button onclick="goToPopup(${index})" class="w-2.5 h-2.5 rounded-full transition-all shadow-md ${index === 0 ? 'bg-white w-5' : 'bg-white/50 hover:bg-white/80'}" id="dot-${index}"></button>`;
+            });
+
+            document.getElementById('popupPrevBtn').classList.toggle('hidden', todayPopups.length <= 1);
+            document.getElementById('popupNextBtn').classList.toggle('hidden', todayPopups.length <= 1);
+            updatePopupTransform();
+        }
+
+        function movePopup(dir) {
+            currentPopupIndex += dir;
+            if(currentPopupIndex < 0) currentPopupIndex = todayPopups.length - 1;
+            if(currentPopupIndex >= todayPopups.length) currentPopupIndex = 0;
+            updatePopupTransform();
+        }
+
+        function goToPopup(index) {
+            currentPopupIndex = index;
+            updatePopupTransform();
+        }
+
+        function updatePopupTransform() {
+            const carousel = document.getElementById('popupCarousel');
+            carousel.style.transform = `translateX(-${currentPopupIndex * 100}%)`;
+            todayPopups.forEach((_, i) => {
+                const dot = document.getElementById(`dot-${i}`);
+                if(dot) {
+                    if(i === currentPopupIndex) {
+                        dot.classList.add('bg-white', 'w-5'); dot.classList.remove('bg-white/50');
+                    } else {
+                        dot.classList.remove('bg-white', 'w-5'); dot.classList.add('bg-white/50');
+                    }
+                }
+            });
+        }
+
+        // --- ระบบจัดการป๊อปอัพ (Admin) ---
+        function openManagePopups() {
+            renderManagePopupsList();
+            document.getElementById('managePopupsModal').classList.remove('hidden');
+        }
+
+        function renderManagePopupsList() {
+            const container = document.getElementById('popupsListContainer');
+            if (popupsData.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 py-10">ยังไม่มีป๊อปอัพในระบบ</div>';
+                return;
+            }
+
+            let html = '';
+            popupsData.forEach(p => {
+                const displayDates = normalizeDates(p.dates); // แปลงวันที่ให้สวยงาม
+                html += `
+                    <div class="bg-white p-3 rounded-lg border border-purple-100 shadow-sm flex items-center gap-3 relative overflow-hidden group hover:border-purple-300 transition">
+                        <img src="${p.imageUrl}" class="w-20 h-14 object-cover rounded bg-gray-100" onerror="this.src='https://via.placeholder.com/80x56?text=X'">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[10px] text-purple-600 font-bold mb-0.5"><i class="fa-regular fa-calendar mr-1"></i> วันที่แสดงผล</div>
+                            <div class="text-xs text-gray-700 truncate" title="${displayDates}">${displayDates || 'ไม่ได้ระบุวัน'}</div>
+                        </div>
+                        <div class="flex flex-col gap-1 shrink-0">
+                            <button onclick="editPopup('${p.id}')" class="text-amber-600 bg-amber-50 hover:bg-amber-100 w-7 h-7 rounded flex items-center justify-center transition"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                            <button onclick="promptDeletePopup('${p.id}')" class="text-red-600 bg-red-50 hover:bg-red-100 w-7 h-7 rounded flex items-center justify-center transition"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function openPopupForm(id = null) {
+            let data = { id: '', imageUrl: '', dates: '' };
+            if (id) {
+                const found = popupsData.find(p => p.id == id);
+                if (found) data = {...found};
+            }
+            document.getElementById('pop_id').value = data.id;
+            document.getElementById('pop_img').value = data.imageUrl;
+            document.getElementById('pop_dates').value = normalizeDates(data.dates); // แปลงใส่วันที่คืนในกล่องแบบ YYYY-MM-DD
+            document.getElementById('popupFormModal').classList.remove('hidden');
+        }
+
+        function editPopup(id) {
+            openPopupForm(id);
+        }
+
+        function appendDateToPopup() {
+            const datePicker = document.getElementById('pop_date_picker');
+            const datesArea = document.getElementById('pop_dates');
+            if (datePicker.value) {
+                let current = datesArea.value.trim();
+                if (current.length > 0 && !current.endsWith(',')) current += ', ';
+                datesArea.value = current + datePicker.value;
+                datePicker.value = ''; // clear
+            } else {
+                showToast("กรุณาเลือกวันที่ต้องการก่อนกดเพิ่ม", true);
+            }
+        }
+
+        async function savePopupData(event) {
+            event.preventDefault();
+            const btn = document.getElementById('btnSavePopup'); 
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> บันทึก...'; btn.disabled = true;
+
+            let finalId = document.getElementById('pop_id').value || 'popup_' + Date.now();
+            const payload = {
+                action: 'save_popup', id: finalId, 
+                imageUrl: document.getElementById('pop_img').value.trim(), 
+                dates: document.getElementById('pop_dates').value.trim()
+            };
+
+            if (!GAS_URL) {
+                setTimeout(() => {
+                    const idx = popupsData.findIndex(p => p.id == payload.id); 
+                    if (idx !== -1) popupsData[idx] = payload; else popupsData.push(payload);
+                    closeModal('popupFormModal'); renderManagePopupsList(); showToast("บันทึกป๊อปอัพจำลองสำเร็จ");
+                    btn.innerHTML = '<i class="fa-solid fa-save mr-2"></i> บันทึก'; btn.disabled = false;
+                }, 800); return;
+            }
+
+            try {
+                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', cache: 'no-cache', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                showToast("บันทึกป๊อปอัพสำเร็จ กำลังอัปเดต..."); 
+                setTimeout(async () => { await loadData(); closeModal('popupFormModal'); renderManagePopupsList(); btn.innerHTML = '<i class="fa-solid fa-save mr-2"></i> บันทึก'; btn.disabled = false; }, 1500);
+            } catch (error) { showToast("เกิดข้อผิดพลาด", true); btn.innerHTML = '<i class="fa-solid fa-save mr-2"></i> บันทึก'; btn.disabled = false; }
+        }
+
+        function promptDeletePopup(id) {
+            itemToDelete = id; isDeletingPopup = true;
+            document.getElementById('confirmText').innerText = "คุณต้องการลบรูปภาพป๊อปอัพนี้ใช่หรือไม่?";
+            document.getElementById('confirmModal').classList.remove('hidden'); 
+            document.getElementById('confirmDeleteBtn').onclick = executeDelete; 
+        }
+
+        // =========================================================================
 
         // ระบบตารางเวลา 
         function showScheduleTable() {
@@ -457,12 +736,18 @@
             setTimeout(() => { editLocation(id); }, 300);
         }
 
-        function deleteFromTable(id) { closeModal('scheduleModal'); promptDelete(id); }
+        function deleteFromTable(id) { 
+            closeModal('scheduleModal'); 
+            itemToDelete = id; isDeletingPopup = false;
+            document.getElementById('confirmText').innerText = "คุณต้องการลบข้อมูลนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้";
+            document.getElementById('confirmModal').classList.remove('hidden'); 
+            document.getElementById('confirmDeleteBtn').onclick = executeDelete; 
+        }
 
         function createIcon(isHighlight = false) {
             return L.divIcon({
                 className: 'custom-icon',
-                html: `<div class="custom-marker transition-all duration-300 flex items-center justify-center ${isHighlight ? 'w-10 h-10 !bg-amber-500 !border-[3px] shadow-[0_0_15px_rgba(245,158,11,0.6)] z-50' : 'w-8 h-8'}"><i class="fa-solid fa-trash"></i></div>`,
+                html: `<div class="custom-marker transition-all duration-300 flex items-center justify-center ${isHighlight ? 'w-10 h-10 !bg-amber-500 !border-[3px] shadow-[0_0_15px_rgba(245,158,11,0.6)] z-50' : 'w-8 h-8'}"><i class="fa-solid fa-trash-can"></i></div>`,
                 iconSize: isHighlight ? [40, 40] : [32, 32], iconAnchor: isHighlight ? [20, 20] : [16, 16]
             });
         }
@@ -576,6 +861,7 @@
                 grouped[zone].forEach(loc => {
                     const isRoute = loc.id.toString().startsWith('route_');
                     const routeColor = routeColorMap[loc.id] || '#3b82f6';
+                    // เปลี่ยนไอคอนตรงนี้เป็นถังขยะสำหรับจุด
                     const icon = isRoute ? `<i class="fa-solid fa-route mr-1" style="color: ${routeColor}"></i>` : `<i class="fa-solid fa-trash-can mr-1 text-emerald-500"></i>`;
                     const itemDragHandle = isAdminMode ? `<div class="drag-handle text-gray-300 hover:text-gray-600 px-2 py-1 cursor-grab active:cursor-grabbing" onclick="event.stopPropagation()"><i class="fa-solid fa-grip-lines"></i></div>` : '';
                     
@@ -654,16 +940,15 @@
             dataToRender.forEach((loc, index) => {
                 const isRoute = loc.id.toString().startsWith('route_');
                 const routeColor = routeColorMap[loc.id] || '#fbbf24';
+                // เปลี่ยนไอคอนแบนเนอร์
                 const icon = isRoute ? `<i class="fa-solid fa-route mx-1" style="color: ${routeColor}"></i>` : '<i class="fa-solid fa-trash-can text-emerald-400 mx-1"></i>';
                 html += `<span class="mx-4 text-emerald-50 cursor-pointer hover:text-white transition" onclick="highlightAndShowDetails('${loc.id}')">${icon} <span class="font-medium">${getDisplayName(loc.name)}</span> : <span class="text-emerald-200">${loc.schedule}</span></span>`;
                 if (index < dataToRender.length - 1) html += `<span class="text-emerald-600 text-[10px] align-middle">●</span>`;
             });
             bannerContent.innerHTML = html;
             
-            // เพิ่มการคำนวณระยะเวลา (Speed) อัตโนมัติ ป้องกันข้อมูลเยอะแล้ววิ่งเร็ว
-            // กำหนดความเร็วให้อ่านสบายๆ ที่ประมาณ 12 วินาที ต่อ 1 รายการ (ขั้นต่ำ 35 วินาที)
             const animationTime = Math.max(35, dataToRender.length * 12);
-            bannerContent.style.animationDuration = `${animationTime}s`;			
+            bannerContent.style.animationDuration = `${animationTime}s`;
         }
 
         function highlightAndShowDetails(id) {
@@ -693,7 +978,7 @@
             let html = `
                 <div class="flex justify-between items-start mb-4 border-b pb-3 border-gray-100">
                     <div class="flex-1 pr-2">
-                        <div class="text-[16px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded inline-block mb-1">${parsed.zone}</div>
+                        <div class="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded inline-block mb-1">${parsed.zone}</div>
                         <h2 class="text-lg font-bold text-gray-800 flex items-start leading-tight">
                             ${isRoute ? `<i class="fa-solid fa-route mr-2 mt-1" style="color: ${routeColor}"></i>` : '<i class="fa-solid fa-trash-can text-emerald-500 mr-2 mt-1"></i>'}${parsed.name}
                         </h2>
@@ -909,15 +1194,38 @@
             currentTempMarker = null; tempPolyline = null; isDrawingRoute = false; routePoints = []; setMode('point'); renderData(); closePanel();
         }
 
-        function promptDelete(id) { itemToDelete = id; document.getElementById('confirmModal').classList.remove('hidden'); document.getElementById('confirmDeleteBtn').onclick = executeDelete; }
+        function promptDelete(id) { 
+            itemToDelete = id; isDeletingPopup = false;
+            document.getElementById('confirmText').innerText = "คุณต้องการลบข้อมูลนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้";
+            document.getElementById('confirmModal').classList.remove('hidden'); 
+            document.getElementById('confirmDeleteBtn').onclick = executeDelete; 
+        }
 
         async function executeDelete() {
-            if(!itemToDelete) return; closeModal('confirmModal'); closePanel(); showToast("กำลังลบข้อมูล...");
-            if (!GAS_URL) { locationsData = locationsData.filter(l => l.id != itemToDelete); renderData(); showToast("ลบข้อมูลจำลองสำเร็จ"); itemToDelete = null; return; }
-            try {
-                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', id: itemToDelete }) });
-                showToast("ลบข้อมูลสำเร็จ กำลังอัปเดตหน้าจอ..."); setTimeout(async () => { await loadData(); }, 1500);
-            } catch(e) { showToast("ลบไม่สำเร็จ กรุณาลองใหม่", true); } itemToDelete = null;
+            if(!itemToDelete) return; 
+            closeModal('confirmModal'); 
+            
+            if (isDeletingPopup) {
+                // สำหรับลบป๊อปอัพ
+                if (!GAS_URL) { 
+                    popupsData = popupsData.filter(p => p.id != itemToDelete); 
+                    renderManagePopupsList(); showToast("ลบป๊อปอัพจำลองสำเร็จ"); itemToDelete = null; return; 
+                }
+                try {
+                    await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete_popup', id: itemToDelete }) });
+                    showToast("ลบป๊อปอัพสำเร็จ กำลังอัปเดต..."); setTimeout(async () => { await loadData(); renderManagePopupsList(); }, 1500);
+                } catch(e) { showToast("ลบไม่สำเร็จ กรุณาลองใหม่", true); }
+                
+            } else {
+                // สำหรับลบข้อมูลแผนที่ (ปกติ)
+                closePanel(); showToast("กำลังลบข้อมูล...");
+                if (!GAS_URL) { locationsData = locationsData.filter(l => l.id != itemToDelete); renderData(); showToast("ลบข้อมูลจำลองสำเร็จ"); itemToDelete = null; return; }
+                try {
+                    await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', id: itemToDelete }) });
+                    showToast("ลบข้อมูลสำเร็จ กำลังอัปเดตหน้าจอ..."); setTimeout(async () => { await loadData(); }, 1500);
+                } catch(e) { showToast("ลบไม่สำเร็จ กรุณาลองใหม่", true); }
+            }
+            itemToDelete = null;
         }
 
         window.promptRenameZone = function(oldZone) {
