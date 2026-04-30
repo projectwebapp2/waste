@@ -70,8 +70,8 @@
             <!-- หัวเว็บ -->
             <div class="p-4 bg-emerald-600 text-white flex justify-between items-center shrink-0">
                 <div class="truncate pr-2">
-                    <h1 class="text-lg md:text-xl font-semibold truncate"><i class="fa-solid fa-truck-ramp-box mr-2"></i>ระบบจัดเก็บขยะ</h1>
-                    <p class="text-emerald-100 text-[10px] md:text-sm truncate">แผนที่เส้นทางและตารางเวลา</p>
+                    <h1 class="text-lg md:text-xl font-semibold truncate"><i class="fa-solid fa-truck-ramp-box mr-2"></i>การจัดเก็บขยะ</h1>
+                    <p class="text-emerald-100 text-[10px] md:text-sm truncate">แผนที่เส้นทางและตารางเวลาเก็บ</p>
                 </div>
                 <div class="flex gap-1.5 md:gap-2 shrink-0">
                     <button id="btnTutorial" onclick="startTutorial(true)" class="bg-emerald-700 hover:bg-emerald-800 w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full text-xs transition shadow-inner" title="คำแนะนำการใช้งาน">
@@ -141,8 +141,8 @@
 
     <!-- ================= MODALS ================= -->
     
-    <!-- 0. Daily Popups (ระบบแสดงป๊อปอัพหน้าแรกสำหรับผู้ใช้) -->
-    <div id="dailyPopupModal" class="fixed inset-0 bg-black/80 hidden z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity">
+    <!-- 0. Daily Popups (ระบบแสดงป๊อปอัพหน้าแรกสำหรับผู้ใช้) ปรับ z-index ให้หน้าสุด -->
+    <div id="dailyPopupModal" class="fixed inset-0 bg-black/80 hidden z-[30000] flex items-center justify-center backdrop-blur-sm transition-opacity">
         <div class="relative w-full max-w-lg mx-4">
             <button onclick="closeModal('dailyPopupModal')" class="absolute -top-12 right-0 text-white hover:text-gray-300 text-4xl z-10 transition">&times;</button>
             <div class="bg-transparent rounded-xl overflow-hidden relative shadow-[0_0_30px_rgba(0,0,0,0.5)]">
@@ -211,11 +211,13 @@
     <div id="passwordModal" class="fixed inset-0 bg-black/60 hidden z-[1000] flex items-center justify-center backdrop-blur-sm transition-opacity">
         <div class="bg-white p-6 rounded-xl w-80 shadow-2xl transform scale-95 transition-transform">
             <h3 class="text-lg font-bold mb-2 text-gray-800"><i class="fa-solid fa-lock text-emerald-600 mr-2"></i>ผู้ดูแลระบบ</h3>
-            <p class="text-xs text-gray-500 mb-4">ระบบตรวจสอบรหัสผ่านเชื่อมต่อกับ Google Sheet โดยตรง</p>
+            <p class="text-xs text-gray-500 mb-4">เข้าระบบเพื่ออัพเดทข้อมูลหรือตั้งค่าป๊อปอัพ</p>
             <input type="password" id="adminPassword" class="w-full border p-2 rounded-lg mb-4 focus:ring-2 focus:ring-emerald-500 outline-none bg-gray-50" placeholder="รหัสผ่าน">
             <div class="flex justify-end gap-2">
                 <button onclick="closeModal('passwordModal')" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition">ยกเลิก</button>
-                <button id="btnLogin" onclick="verifyPassword()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 shadow flex items-center justify-center min-w-[100px] transition"><i id="btnLoginIcon" class="hidden"></i> <span id="btnLoginText">เข้าสู่ระบบ</span></button>
+                <button id="btnLogin" onclick="verifyPassword()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 shadow flex items-center justify-center min-w-[100px] transition">
+                    <i id="btnLoginIcon" class="hidden"></i> <span id="btnLoginText">เข้าสู่ระบบ</span>
+                </button>
             </div>
         </div>
     </div>
@@ -235,7 +237,9 @@
         <div class="bg-white rounded-xl w-full max-w-5xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden">
             <div class="p-4 border-b flex justify-between items-center bg-emerald-50 shrink-0">
                 <h3 class="text-lg font-bold text-emerald-800"><i class="fa-solid fa-calendar-days mr-2"></i>ตารางเวลาการจัดเก็บขยะ</h3>
-                <button onclick="closeModal('scheduleModal')" class="text-gray-500 hover:bg-gray-200 w-8 h-8 rounded-full transition flex justify-center items-center"><i class="fa-solid fa-xmark"></i></button>
+                <button onclick="closeModal('scheduleModal')" class="text-gray-500 hover:bg-gray-200 w-8 h-8 rounded-full transition flex justify-center items-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
             <div class="overflow-x-auto overflow-y-auto flex-1 p-0 relative">
                 <table class="w-full text-left border-collapse text-sm min-w-[600px]">
@@ -253,7 +257,9 @@
             </div>
             <div class="p-4 border-t bg-gray-50 flex justify-between items-center shrink-0">
                 <div class="text-xs text-gray-500 font-medium" id="scheduleCount">รวม 0 รายการ</div>
-                <button class="hidden px-4 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 shadow admin-col transition" onclick="closeModal('scheduleModal'); showToast('คลิกบนแผนที่เพื่อเพิ่มจุดจัดเก็บ หรือสลับไปวาดเส้นทาง', false);"><i class="fa-solid fa-location-dot mr-1"></i> เพิ่มข้อมูลบนแผนที่</button>
+                <button class="hidden px-4 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 shadow admin-col transition" onclick="closeModal('scheduleModal'); showToast('คลิกบนแผนที่เพื่อเพิ่มจุดจัดเก็บ หรือสลับไปวาดเส้นทาง', false);">
+                    <i class="fa-solid fa-location-dot mr-1"></i> เพิ่มข้อมูลบนแผนที่
+                </button>
             </div>
         </div>
     </div>
@@ -291,7 +297,7 @@
     </div>
 
     <!-- Toast แจ้งเตือน -->
-    <div id="toast" class="fixed top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded shadow-lg transform transition-transform duration-300 translate-y-[-150%] z-[20000] flex items-center gap-2">
+    <div id="toast" class="fixed top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded shadow-lg transform transition-transform duration-300 translate-y-[-150%] z-[40000] flex items-center gap-2">
         <span id="toastMsg"></span>
     </div>
 
@@ -334,32 +340,35 @@
             { id: "route_1", name: "ชุมชนบางคอแหลม|เส้นทางรถขยะสาย A", lat: "[[13.7550,100.5010],[13.7563,100.5018],[13.7580,100.5040]]", lng: "", schedule: "ทุกวัน (07:00)", responsible: "ทีมงานเทศบาล", details: "รถเก็บขยะคันสีเขียว ทะเบียน 1234" }
         ];
 
-        // Helper สำหรับหาวันที่ปัจจุบันของประเทศไทย (Format: YYYY-MM-DD)
+        // Helper สำหรับหาวันที่ปัจจุบันของประเทศไทย (Format: YYYY-MM-DD) ที่ถูกต้อง 100%
         function getThailandDateString() {
             const d = new Date();
-            // แปลงโซนเวลาให้เป็นเวลาของกรุงเทพฯ
-            const bkkTime = new Date(d.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
-            return bkkTime.getFullYear() + '-' + String(bkkTime.getMonth() + 1).padStart(2, '0') + '-' + String(bkkTime.getDate()).padStart(2, '0');
+            // การบวกเวลา 7 ชั่วโมง (UTC+7) ลงไปตรงๆ เพื่อป้องกันปัญหา Timezone ของเบราว์เซอร์
+            d.setUTCHours(d.getUTCHours() + 7);
+            return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
         }
 
-        // Helper แก้ปัญหา Google Sheet แปลง Date เป็น ISO String กลับมาเป็น YYYY-MM-DD
+        // Helper แก้ปัญหา Google Sheet แปลง Date เป็นรูปแบบ ISO ที่มีตัว T และ Z ท้ายประโยค
         function normalizeDates(rawDates) {
             if (!rawDates) return '';
-            return rawDates.split(',').map(d => {
+            return String(rawDates).split(',').map(d => {
                 let str = d.trim();
-                // ถ้ามี T และ Z แสดงว่าเป็น Date Object จาก Google Sheets
-                if (str.includes('T') && str.includes('Z')) {
+                // ถ้ามีตัว T แสดงว่าเป็นรูปแบบเวลามาตรฐาน ให้จับบวกเวลาไทยให้ตรงเป๊ะ
+                if (str.includes('T')) {
                     try {
                         const dateObj = new Date(str);
-                        const bkkTime = new Date(dateObj.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
-                        return bkkTime.getFullYear() + '-' + String(bkkTime.getMonth() + 1).padStart(2, '0') + '-' + String(bkkTime.getDate()).padStart(2, '0');
+                        if (isNaN(dateObj.getTime())) return str;
+                        // ดันเวลาเพิ่มอีก 7 ชั่วโมงเสมอ (UTC -> Thai Time)
+                        dateObj.setUTCHours(dateObj.getUTCHours() + 7);
+                        return dateObj.getUTCFullYear() + '-' + 
+                               String(dateObj.getUTCMonth() + 1).padStart(2, '0') + '-' + 
+                               String(dateObj.getUTCDate()).padStart(2, '0');
                     } catch(e) { return str; }
                 }
                 return str;
             }).join(', ');
         }
 
-        // สร้าง Mock Popup ให้แสดงผลในวันนี้เสมอ (เพื่อการทดสอบ)
         const todayStr = getThailandDateString();
         const mockPopups = [
             { id: 'p1', imageUrl: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&q=80&w=800&h=500', dates: todayStr },
@@ -464,8 +473,6 @@
             document.getElementById('tutorialOverlay').classList.add('hidden');
             document.getElementById('tutorialTooltip').classList.add('hidden');
             localStorage.setItem('garbage_map_tutorial_seen', 'true');
-            // หลังจากจบบทสอน ให้เช็คว่ามีป๊อปอัพวันนี้ไหม
-            checkAndShowDailyPopups();
         }
 
         // ระบบเริ่มต้นแผนที่
@@ -500,11 +507,10 @@
                     locationsData = mockData; 
                     popupsData = mockPopups;
                     renderData(); 
-                    if (localStorage.getItem('garbage_map_tutorial_seen')) {
-                        checkAndShowDailyPopups(); // เรียกตอนโหลดเสร็จ ถ้าเคยดูบทสอนแล้ว
-                    } else {
-                        setTimeout(() => { startTutorial(false); }, 500); // เรียกบทสอนถ้ายังไม่เคยดู
-                    }
+                    
+                    // ปรับให้ตรวจสอบ Popup และ Tutorial พร้อมกัน (Popup จะลอยทับหน้าสุดเพราะเราดัน z-index ไปที่ 30000)
+                    checkAndShowDailyPopups();
+                    setTimeout(() => { startTutorial(false); }, 500);
                 }, 800);
                 return;
             }
@@ -515,11 +521,9 @@
                     locationsData = result.data; 
                     popupsData = result.popups || [];
                     renderData(); 
-                    if (localStorage.getItem('garbage_map_tutorial_seen')) {
-                        checkAndShowDailyPopups();
-                    } else {
-                        setTimeout(() => { startTutorial(false); }, 500);
-                    }
+                    
+                    checkAndShowDailyPopups();
+                    setTimeout(() => { startTutorial(false); }, 500);
                 } 
                 else { showToast("ข้อผิดพลาด: " + result.message, true); renderListUI([]); updateBanner([]); }
             } catch (error) {
@@ -533,15 +537,14 @@
         let currentPopupIndex = 0;
 
         function checkAndShowDailyPopups() {
-            const today = getThailandDateString(); // Format: YYYY-MM-DD (ใช้เวลาประเทศไทย)
+            const today = getThailandDateString(); // Format: YYYY-MM-DD
             const seenKey = 'garbage_map_popup_seen_' + today;
             
-            // เช็คว่าวันนี้เคยดูหรือยัง (จะเด้งแค่วันละ 1 ครั้งต่อเครื่อง)
             if (localStorage.getItem(seenKey)) return;
 
-            // กรองหาป๊อปอัพที่มีวันที่ตรงกับวันนี้
             todayPopups = popupsData.filter(p => {
                 if(!p.dates) return false;
+                // ส่งค่าไปแปลงวันเวลาให้แม่นยำ 100% เสมอ
                 const normalizedDates = normalizeDates(p.dates);
                 const dateList = normalizedDates.split(',').map(d => d.trim());
                 return dateList.includes(today);
@@ -613,7 +616,7 @@
 
             let html = '';
             popupsData.forEach(p => {
-                const displayDates = normalizeDates(p.dates); // แปลงวันที่ให้สวยงาม
+                const displayDates = normalizeDates(p.dates); 
                 html += `
                     <div class="bg-white p-3 rounded-lg border border-purple-100 shadow-sm flex items-center gap-3 relative overflow-hidden group hover:border-purple-300 transition">
                         <img src="${p.imageUrl}" class="w-20 h-14 object-cover rounded bg-gray-100" onerror="this.src='https://via.placeholder.com/80x56?text=X'">
@@ -639,7 +642,7 @@
             }
             document.getElementById('pop_id').value = data.id;
             document.getElementById('pop_img').value = data.imageUrl;
-            document.getElementById('pop_dates').value = normalizeDates(data.dates); // แปลงใส่วันที่คืนในกล่องแบบ YYYY-MM-DD
+            document.getElementById('pop_dates').value = normalizeDates(data.dates); 
             document.getElementById('popupFormModal').classList.remove('hidden');
         }
 
@@ -671,6 +674,10 @@
                 imageUrl: document.getElementById('pop_img').value.trim(), 
                 dates: document.getElementById('pop_dates').value.trim()
             };
+
+            // ทริคพิเศษ: ลบประวัติการดูของแอดมินออก เพื่อให้เซฟเสร็จแล้วได้เห็นผลลัพธ์ป๊อปอัพทันทีตอนรีเฟรช 
+            const todayKey = 'garbage_map_popup_seen_' + getThailandDateString();
+            localStorage.removeItem(todayKey);
 
             if (!GAS_URL) {
                 setTimeout(() => {
@@ -1206,7 +1213,6 @@
             closeModal('confirmModal'); 
             
             if (isDeletingPopup) {
-                // สำหรับลบป๊อปอัพ
                 if (!GAS_URL) { 
                     popupsData = popupsData.filter(p => p.id != itemToDelete); 
                     renderManagePopupsList(); showToast("ลบป๊อปอัพจำลองสำเร็จ"); itemToDelete = null; return; 
@@ -1217,7 +1223,6 @@
                 } catch(e) { showToast("ลบไม่สำเร็จ กรุณาลองใหม่", true); }
                 
             } else {
-                // สำหรับลบข้อมูลแผนที่ (ปกติ)
                 closePanel(); showToast("กำลังลบข้อมูล...");
                 if (!GAS_URL) { locationsData = locationsData.filter(l => l.id != itemToDelete); renderData(); showToast("ลบข้อมูลจำลองสำเร็จ"); itemToDelete = null; return; }
                 try {
@@ -1274,7 +1279,7 @@
         function showToast(message, isError = false) {
             const toast = document.getElementById('toast');
             document.getElementById('toastMsg').innerHTML = isError ? `<i class="fa-solid fa-circle-xmark text-red-400"></i> ${message}` : `<i class="fa-solid fa-circle-check text-emerald-400"></i> ${message}`;
-            toast.className = `fixed top-4 right-4 text-white px-4 py-3 rounded-lg shadow-xl transform transition-transform duration-300 z-[20000] ${isError ? 'bg-red-800' : 'bg-gray-800'}`;
+            toast.className = `fixed top-4 right-4 text-white px-4 py-3 rounded-lg shadow-xl transform transition-transform duration-300 z-[40000] ${isError ? 'bg-red-800' : 'bg-gray-800'}`;
             toast.classList.remove('translate-y-[-150%]'); clearTimeout(toastTimeout);
             toastTimeout = setTimeout(() => toast.classList.add('translate-y-[-150%]'), 3500);
         }
